@@ -12,16 +12,15 @@
 (def future-gen  (gen/fmap f/const-future (gen/not-empty gen/string-alpha-numeric)))
 
 (defn functor-laws-identity [generator]
-  (prop/for-all [result generator]
-                (= (f/map result (comp #(* 2 %) count))
-                   (f/map (f/map result count)
-                          #(* 2 %)))))
+  (prop/for-all [functor generator]
+                (= (f/map functor identity)
+                   (identity functor))))
 
 (defn functor-laws-associativity [generator]
-  (prop/for-all [result generator]
-                (= (f/map result (comp #(* 2 %) count))
-                   (f/map (f/map result count)
-                          #(* 2 %)))))
+  (prop/for-all [functor generator]
+                (= (f/map functor (comp count str))
+                   (f/map (f/map functor str)
+                          count))))
 
 (defspec result-functor-laws-identity
   100

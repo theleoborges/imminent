@@ -14,6 +14,9 @@
 (defprotocol Functor
   (map [this f]))
 
+(defprotocol Bind
+  (bind [this other]))
+
 (defprotocol IReturn
   (success?  [this])
   (failure?  [this])
