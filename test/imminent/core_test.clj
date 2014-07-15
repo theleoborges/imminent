@@ -44,30 +44,23 @@
                                   (f/bind (f x) g)))))))
 
 (defspec result-functor-laws-identity
-  100
   (functor-laws-identity (gen/one-of [success-gen failure-gen])))
 
 
 (defspec result-functor-laws-associativity
-  100
   (functor-laws-associativity (gen/one-of [success-gen failure-gen])))
 
 (defspec future-functor-laws-identity
-  100
   (functor-laws-identity future-gen))
 
 (defspec future-functor-laws-associativity
-  100
   (functor-laws-associativity future-gen))
 
 (defspec future-monad-laws-left-identity
-  100
   (monad-laws-left-identity f/const-future (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-right-identity
-  100
   (monad-laws-right-identity f/const-future (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-associativity
-  100
   (monad-laws-right-identity f/const-future (gen/not-empty gen/string-alpha-numeric)))
