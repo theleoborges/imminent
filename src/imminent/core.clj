@@ -15,7 +15,7 @@
   (map [this f]))
 
 (defprotocol Bind
-  (bind [this other]))
+  (bind [ma fmb]))
 
 (defprotocol IReturn
   (success?  [this])
@@ -58,13 +58,6 @@
 (defprotocol IPromise
   (complete [this value]))
 
-
-;; (defrecord Future [listeners]
-;;   IFuture
-;;   (on-success   [this f])
-;;   (on-failure     [this f])
-;;   (on-complete  [this f]))
-
 (defn dispatch [listeners value]
   (doseq [f listeners]
     (f value)))
@@ -103,10 +96,27 @@
                           (complete p (map v f))))
       p))
 
+  Bind
+  (bind [ma fmb]
+    (let [p (promise)]
+      (on-complete ma (fn [a]
+                        (if (success? a)
+                          (on-complete (fmb (raw-value a))
+                                       (fn [b]
+                                         (complete p b)))
+                          (complete p a))))
+      p))
+
   Object
   (equals   [this other] (= (value this) (value other)))
   (hashCode [this] (hash (value this)))
   (toString [this] (pr-str (value this))))
+(comment
+  (def ma (const-future 10))
+  (defn fmb [n]
+    (const-future (* 2 n)))
+  (bind ma fmb)
+  )
 
 (defn promise []
   (Promise. (atom []) (atom ::unresolved)))
