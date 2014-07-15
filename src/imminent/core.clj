@@ -63,6 +63,7 @@
     (f value)))
 
 (declare promise)
+(declare const-future)
 
 (deftype Promise [listeners state]
   IFuture
@@ -91,10 +92,13 @@
 
   Functor
   (map [this f]
-    (let [p (promise)]
-      (on-complete this (fn [v]
-                          (complete p (map v f))))
-      p))
+    (bind this (fn [a]
+                 (const-future (f a))))
+    ;; (let [p (promise)]
+    ;;   (on-complete this (fn [v]
+    ;;                       (complete p (map v f))))
+    ;;   p)
+    )
 
   Bind
   (bind [ma fmb]
