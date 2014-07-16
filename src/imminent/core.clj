@@ -99,12 +99,7 @@
   Functor
   (map [this f]
     (bind this (fn [a]
-                 (from-try #(f a))))
-    ;; (let [p (promise)]
-    ;;   (on-complete this (fn [v]
-    ;;                       (complete p (map v f))))
-    ;;   p)
-    )
+                 (from-try #(f a)))))
 
   Bind
   (bind [ma fmb]
