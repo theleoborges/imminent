@@ -52,8 +52,7 @@
   (on-failure   [this f])
   (on-complete  [this f])
   (filter       [this f?])
-  (flatmap      [this f])
-  (sequence     [this]))
+  (flatmap      [this f]))
 
 (defprotocol IPromise
   (complete [this value]))
@@ -64,6 +63,7 @@
 
 (declare promise)
 (declare const-future)
+(declare from-try)
 
 (deftype Promise [listeners state]
   IFuture
@@ -82,6 +82,12 @@
         (swap! listeners conj f)
         (f st))))
 
+  (filter [this pred?]
+    (map this (fn [a]
+                (if (pred? a)
+                  a
+                  (throw (java.util.NoSuchElementException. "Failed predicate"))))))
+
   IPromise
   (complete [this value]
     (if (= @state ::unresolved)
@@ -93,7 +99,7 @@
   Functor
   (map [this f]
     (bind this (fn [a]
-                 (const-future (f a))))
+                 (from-try #(f a))))
     ;; (let [p (promise)]
     ;;   (on-complete this (fn [v]
     ;;                       (complete p (map v f))))
@@ -115,6 +121,7 @@
   (equals   [this other] (= (value this) (value other)))
   (hashCode [this] (hash (value this)))
   (toString [this] (pr-str (value this))))
+
 (comment
   (def ma (const-future 10))
   (defn fmb [n]
@@ -139,9 +146,19 @@
                  (complete p (try* task)))))
     p))
 
+(defn from-try [f]
+  (let [p (promise)]
+    (complete p (try* f))
+    p))
+
 (defn const-future [v]
   (let [p (promise)]
     (complete p (Success. v))
+    p))
+
+(defn failed-future [e]
+  (let [p (promise)]
+    (complete p (Failure. e))
     p))
 
 ;; (def f (future (fn []
