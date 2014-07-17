@@ -1,24 +1,26 @@
 (ns imminent.core
-  (:require [imminent.executors :as executors])
-  (:refer-clojure :exclude [map filter future promise sequence]))
+  (:refer-clojure :exclude [map filter future promise sequence])
+  (:require imminent.protocols
+            [imminent.executors :as executors]
+            [imminent.util.namespaces :refer [import-vars]]))
 
 (set! *warn-on-reflection* true)
+
+(import-vars
+ [imminent.protocols
+  Functor   Bind
+  map       bind
+  IReturn
+  success? failure? raw-value
+  IFuture
+  value on-success on-failure on-complete filter flatmap
+  IPromise
+  complete])
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
   (binding [*out* repl-out]
     (apply prn args)))
-
-(defprotocol Functor
-  (map [this f]))
-
-(defprotocol Bind
-  (bind [ma fmb]))
-
-(defprotocol IReturn
-  (success?  [this])
-  (failure?  [this])
-  (raw-value [this]))
 
 (defrecord Success [v]
   IReturn
@@ -29,9 +31,6 @@
   (map       [this f]
     (Success. (f v))))
 
-(defn success [v]
-  (Success. v))
-
 (defrecord Failure [e]
   IReturn
   (success?  [this] false)
@@ -41,19 +40,11 @@
   (map       [this _]
     this))
 
+(defn success [v]
+  (Success. v))
+
 (defn failure [v]
   (Failure. v))
-
-(defprotocol IFuture
-  (value        [this])
-  (on-success   [this f])
-  (on-failure   [this f])
-  (on-complete  [this f])
-  (filter       [this f?])
-  (flatmap      [this f]))
-
-(defprotocol IPromise
-  (complete [this value]))
 
 (defn dispatch [f value]
   (.execute ^java.util.concurrent.Executor executors/*executor*
@@ -119,13 +110,6 @@
   (hashCode [this] (hash (value this)))
   (toString [this] (pr-str (value this))))
 
-(comment
-  (def ma (const-future 10))
-  (defn fmb [n]
-    (const-future (* 2 n)))
-  (bind ma fmb)
-  )
-
 (defn promise []
   (Promise. (atom []) (atom ::unresolved)))
 
@@ -142,24 +126,6 @@
                 (complete p (try* task))))
     p))
 
-(comment
-  (binding [executors/*executor* executors/immediate-executor]
-    (def f1 (future (fn []
-                      (Thread/sleep 5000)
-                      (prn-to-repl (.getId (Thread/currentThread)))
-                      "3")))
-
-    (def f2 (map f1 (fn [x]
-                      (prn-to-repl (.getId (Thread/currentThread)))
-                      (read-string x))))
-
-    (def f3 (filter f2 (fn [x]
-                         (prn-to-repl (.getId (Thread/currentThread)))
-                         (even? x)))))
-
-  )
-
-
 (defn from-try [f]
   (let [p (promise)]
     (complete p (try* f))
@@ -174,24 +140,3 @@
   (let [p (promise)]
     (complete p (Failure. e))
     p))
-
-;; (def f (future (fn []
-;;                  (prn-to-repl "thinking...")
-;;                  (Thread/sleep 2000)
-;;                  (prn-to-repl "done thinking...")
-;;                  42)))
-
-;; (def f1 (map f #(* 10 %)))
-;; (on-success f1 (fn [v]
-;;                 (prn-to-repl "The answer of life is now..." v)))
-
-;; (on-success f (fn [v]
-;;                 (prn-to-repl "The answer of life is..." v)))
-
-;; (on-complete f (fn [v]
-;;                 (prn-to-repl "done. " v)))
-
-;; (def p (promise))
-;; (on-failure p (fn [v] (prn "complete with " v)))
-
-;; (complete p (Failure. (Exception. "Whatever")))
