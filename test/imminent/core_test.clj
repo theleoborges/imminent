@@ -1,6 +1,7 @@
 (ns imminent.core-test
   (:require [clojure.test :refer :all]
             [imminent.core :as core]
+            [imminent.executors :as executors]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
@@ -11,6 +12,12 @@
 (def failure-gen (gen/fmap core/failure (gen/not-empty gen/string-alpha-numeric)))
 (def future-gen  (gen/fmap core/const-future (gen/not-empty gen/string-alpha-numeric)))
 
+(defn setup [f]
+  (binding [executors/*executor* executors/immediate-executor]
+    (f)))
+
+(use-fixtures :each setup)
+
 (defn functor-laws-identity [generator]
   (prop/for-all [functor generator]
                 (= (core/map functor identity)
@@ -20,7 +27,7 @@
   (prop/for-all [functor generator]
                 (= (core/map functor (comp count str))
                    (core/map (core/map functor str)
-                          count))))
+                             count))))
 
 (defn monad-laws-left-identity [pure generator]
   (prop/for-all [a   generator]
@@ -41,7 +48,7 @@
                       g  count]
                   (= (core/bind (core/bind ma f) g)
                      (core/bind ma (fn [x]
-                                  (core/bind (f x) g)))))))
+                                     (core/bind (f x) g)))))))
 
 (defspec result-functor-laws-identity
   (functor-laws-identity (gen/one-of [success-gen failure-gen])))

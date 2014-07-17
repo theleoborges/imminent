@@ -1,4 +1,5 @@
 (ns imminent.core
+  (:require [imminent.executors :as executors])
   (:refer-clojure :exclude [map filter future promise sequence]))
 
 (set! *warn-on-reflection* true)
@@ -7,9 +8,6 @@
 (defn prn-to-repl [& args]
   (binding [*out* repl-out]
     (apply prn args)))
-
-(def default-thread-count (+ 2 (.availableProcessors (Runtime/getRuntime))))
-(def default-thread-pool (java.util.concurrent.Executors/newFixedThreadPool default-thread-count))
 
 (defprotocol Functor
   (map [this f]))
@@ -57,9 +55,13 @@
 (defprotocol IPromise
   (complete [this value]))
 
-(defn dispatch [listeners value]
+(defn dispatch [f value]
+  (.execute ^java.util.concurrent.Executor executors/*executor*
+            #(f value)))
+
+(defn dispatch-all [listeners value]
   (doseq [f listeners]
-    (f value)))
+    (dispatch f value)))
 
 (declare promise)
 (declare const-future)
@@ -80,7 +82,7 @@
     (let [st @state]
       (if (= st ::unresolved)
         (swap! listeners conj f)
-        (f st))))
+        (dispatch f st))))
 
   (filter [this pred?]
     (map this (fn [a]
@@ -93,7 +95,7 @@
     (if (= @state ::unresolved)
       (do
         (reset! state value)
-        (dispatch @listeners value))
+        (dispatch-all @listeners value))
       (throw (Exception. "Attempted to complete already completed promise"))))
 
   Functor
@@ -135,11 +137,28 @@
 
 (defn future [task]
   (let [p (promise)]
-    (.submit ^java.util.concurrent.ExecutorService default-thread-pool
-             (reify Runnable
-               (run [_]
-                 (complete p (try* task)))))
+    (.execute ^java.util.concurrent.Executor executors/*executor*
+              (fn []
+                (complete p (try* task))))
     p))
+
+(comment
+  (binding [executors/*executor* executors/immediate-executor]
+    (def f1 (future (fn []
+                      (Thread/sleep 5000)
+                      (prn-to-repl (.getId (Thread/currentThread)))
+                      "3")))
+
+    (def f2 (map f1 (fn [x]
+                      (prn-to-repl (.getId (Thread/currentThread)))
+                      (read-string x))))
+
+    (def f3 (filter f2 (fn [x]
+                         (prn-to-repl (.getId (Thread/currentThread)))
+                         (even? x)))))
+
+  )
+
 
 (defn from-try [f]
   (let [p (promise)]
