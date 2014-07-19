@@ -1,7 +1,8 @@
 (ns imminent.core
   (:refer-clojure :exclude [map filter future promise sequence])
   (:require imminent.protocols
-            [imminent.executors :as executors]
+            [imminent.util.monad :as m]
+            [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]])
   (:import clojure.lang.IDeref))
 
@@ -9,14 +10,19 @@
 
 (import-vars
  [imminent.protocols
-  Functor   Bind
-  map       bind flatmap
+  Functor
+  map
   IReturn
   success? failure? raw-value
   IFuture
-  on-success on-failure on-complete filter flatmap
+  on-success on-failure on-complete filter
   IPromise
-  complete ->future])
+  complete ->future]
+
+ [imminent.util.monad
+  Bind
+  bind flatmap]
+ )
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
@@ -166,3 +172,9 @@
   (let [p (promise)]
     (complete p (Failure. e))
     (->future p)))
+
+(def future-monad
+  {:point const-future
+   :bind  bind})
+
+(def sequence (partial m/sequence-m future-monad))

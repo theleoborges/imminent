@@ -48,7 +48,7 @@
                       g  count]
                   (= (bind (bind ma f) g)
                      (bind ma (fn [x]
-                                     (bind (f x) g)))))))
+                                (bind (f x) g)))))))
 
 (defspec result-functor-laws-identity
   (functor-laws-identity (gen/one-of [success-gen failure-gen])))
@@ -152,3 +152,21 @@
            imminent.core.Failure (core/map future bad-fn)
            imminent.core.Failure (core/filter future bad-fn)
            imminent.core.Failure (core/bind future bad-fn)))))
+
+
+(deftest sequencing
+  (testing "success"
+    (let [result (-> [(core/const-future 10) (core/const-future 20) (core/const-future 30)]
+                     (core/sequence)
+                     deref)]
+
+      (is (instance? imminent.core.Success result))
+      (is (= (core/raw-value result) [10 20 30]))))
+
+  (testing "failure"
+    (testing "failed future"
+      (let [result (-> [(core/const-future 10) (core/failed-future (ex-info "error" {}))]
+                       (core/sequence)
+                       deref)]
+        (is (instance? imminent.core.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))

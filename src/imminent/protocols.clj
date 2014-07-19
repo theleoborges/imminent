@@ -1,12 +1,8 @@
 (ns imminent.protocols
-  (:refer-clojure :exclude [map filter future promise sequence]))
+  (:refer-clojure :exclude [map filter]))
 
 (defprotocol Functor
   (map [this f]))
-
-(defprotocol Bind
-  (bind    [ma fmb])
-  (flatmap [ma fmb]))
 
 (defprotocol IReturn
   (success?  [this])
