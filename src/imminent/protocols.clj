@@ -5,7 +5,8 @@
   (map [this f]))
 
 (defprotocol Bind
-  (bind [ma fmb]))
+  (bind    [ma fmb])
+  (flatmap [ma fmb]))
 
 (defprotocol IReturn
   (success?  [this])
@@ -16,8 +17,7 @@
   (on-success   [this f])
   (on-failure   [this f])
   (on-complete  [this f])
-  (filter       [this f?])
-  (flatmap      [this f]))
+  (filter       [this f?]))
 
 (defprotocol IPromise
   (complete [this value])

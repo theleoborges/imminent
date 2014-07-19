@@ -29,26 +29,26 @@
                    (core/map (core/map functor str)
                              count))))
 
-(defn monad-laws-left-identity [pure generator]
+(defn monad-laws-left-identity [pure bind generator]
   (prop/for-all [a   generator]
                 (let [fmb #(pure (str %))]
-                  (= (core/bind (pure a) fmb)
+                  (= (bind (pure a) fmb)
                      (fmb a)))))
 
-(defn monad-laws-right-identity [pure generator]
+(defn monad-laws-right-identity [pure bind generator]
   (prop/for-all [a   generator]
                 (let [ma (pure a)]
-                  (= (core/bind ma pure)
+                  (= (bind ma pure)
                      ma))))
 
-(defn monad-laws-associativity [pure generator]
+(defn monad-laws-associativity [pure bind generator]
   (prop/for-all [a   generator]
                 (let [ma (pure a)
                       f  str
                       g  count]
-                  (= (core/bind (core/bind ma f) g)
-                     (core/bind ma (fn [x]
-                                     (core/bind (f x) g)))))))
+                  (= (bind (bind ma f) g)
+                     (bind ma (fn [x]
+                                     (bind (f x) g)))))))
 
 (defspec result-functor-laws-identity
   (functor-laws-identity (gen/one-of [success-gen failure-gen])))
@@ -63,13 +63,22 @@
   (functor-laws-associativity future-gen))
 
 (defspec future-monad-laws-left-identity
-  (monad-laws-left-identity core/const-future (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-left-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-right-identity
-  (monad-laws-right-identity core/const-future (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-associativity
-  (monad-laws-right-identity core/const-future (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
+
+(defspec future-monad-laws-left-identity-flatmap
+  (monad-laws-left-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
+
+(defspec future-monad-laws-right-identity-flatmap
+  (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
+
+(defspec future-monad-laws-associativity-flatmap
+  (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
 
 
 (deftest mapping

@@ -10,7 +10,7 @@
 (import-vars
  [imminent.protocols
   Functor   Bind
-  map       bind
+  map       bind flatmap
   IReturn
   success? failure? raw-value
   IFuture
@@ -104,6 +104,8 @@
                                          (complete p b)))
                           (complete p a))))
       (->future p)))
+
+  (flatmap [ma fmb] (bind ma fmb))
 
   Object
   (equals   [this other] (= @this @other))
