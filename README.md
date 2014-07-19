@@ -4,7 +4,7 @@ Composable futures for Clojure
 
 ## Brain dump
 
-The library contains 2 basic data types with distinct: Promises and Futures. 
+The library contains 2 basic data types with distinct semantics: Promises and Futures. 
 
 ### Promises
 
@@ -12,7 +12,7 @@ Promises are write-once containers and can be in once of 3 states: Unresolved, r
 
 ### Futures
 
-Futures are read-only containers and, just like promises, can be in once of 3 states: Unresolved, resolved successfully or resolved unsuccessfully.
+Futures are read-only containers and, just like promises, can be in one of 3 states: Unresolved, resolved successfully or resolved unsuccessfully.
 
 Futures will eventually provide a rich set of combinators (but a few are already available, such as `map`, `filter` and `flatmap`) as well as the event handlers `on-complete`, `on-success` and `on-failure`.
 
