@@ -72,6 +72,25 @@
   (monad-laws-right-identity core/const-future (gen/not-empty gen/string-alpha-numeric)))
 
 
+(deftest mapping
+  (testing "success"
+    (let [result (-> (core/const-future 10)
+                     (core/map #(* % %))
+                     deref)]
+
+      (is (instance? imminent.core.Success result))
+      (is (= (core/raw-value result) 100)))
+    )
+
+  (testing "failure"
+    (testing "failed future"
+      (let [result (-> (core/failed-future (ex-info "error" {}))
+                       (core/map #(* % %))
+                       deref)]
+        (is (instance? imminent.core.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))
+    ))
+
 (deftest filtering
   (testing "success"
     (let [result (-> (core/const-future 10)
