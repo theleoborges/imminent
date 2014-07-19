@@ -21,13 +21,7 @@
 
  [imminent.util.monad
   Bind
-  bind flatmap]
- )
-
-(def  repl-out *out*)
-(defn prn-to-repl [& args]
-  (binding [*out* repl-out]
-    (apply prn args)))
+  bind flatmap])
 
 (defrecord Success [v]
   IReturn

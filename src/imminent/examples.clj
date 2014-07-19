@@ -3,6 +3,11 @@
   (:require [imminent.core :refer :all]
             [imminent.executors :as executors]))
 
+(def  repl-out *out*)
+(defn prn-to-repl [& args]
+  (binding [*out* repl-out]
+    (apply prn args)))
+
 (comment
   (def ma (const-future 10))
   (defn fmb [n]

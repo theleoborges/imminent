@@ -4,13 +4,19 @@
   (bind    [ma fmb])
   (flatmap [ma fmb]))
 
+;;
+;; Derived functions
+;;
+
 (defn lift2-m [m f]
-  (fn [ma mb]
-    ((:bind m) ma
-     (fn [a]
-       ((:bind m) mb
-        (fn [b]
-          ((:point m) (f a b))))))))
+  (let [point (:point m)
+        bind  (:bind m)]
+    (fn [ma mb]
+      (bind ma
+       (fn [a]
+         (bind mb
+          (fn [b]
+            (point (f a b)))))))))
 
 (defn sequence-m [m ms]
   (reduce (lift2-m m conj)
