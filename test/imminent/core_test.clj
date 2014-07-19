@@ -117,3 +117,12 @@
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))
 
     ))
+
+
+(deftest exception-handling
+  (testing "core functions don't blow up"
+    (let [bad-fn (fn [_] (throw (ex-info "bad, bad fn!" {})))
+          future (core/const-future 10)]
+      (are [x y ] (instance? x @y)
+           imminent.core.Failure (core/map future bad-fn)
+           imminent.core.Failure (core/filter future bad-fn)))))
