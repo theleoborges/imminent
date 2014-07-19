@@ -119,10 +119,27 @@
     ))
 
 
+(deftest flatmapping
+  (testing "success"
+    (let [result (-> (core/const-future 10)
+                     (core/bind (fn [n] (core/const-future (* n n))))
+                     deref)]
+      (is (instance? imminent.core.Success result))
+      (is (= (core/raw-value result) 100))))
+
+  (testing "failed future"
+    (let [result (-> (core/failed-future (ex-info "error" {}))
+                     (core/bind (fn [n] (core/const-future (* n n))))
+                     deref)]
+      (is (instance? imminent.core.Failure result))
+      (is (instance? clojure.lang.ExceptionInfo (core/raw-value result))))))
+
+
 (deftest exception-handling
   (testing "core functions don't blow up"
     (let [bad-fn (fn [_] (throw (ex-info "bad, bad fn!" {})))
           future (core/const-future 10)]
       (are [x y ] (instance? x @y)
            imminent.core.Failure (core/map future bad-fn)
-           imminent.core.Failure (core/filter future bad-fn)))))
+           imminent.core.Failure (core/filter future bad-fn)
+           imminent.core.Failure (core/bind future bad-fn)))))

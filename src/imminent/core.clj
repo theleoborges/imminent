@@ -57,6 +57,12 @@
 
 (declare promise)
 (declare from-try)
+(declare failed-future)
+(defmacro try-future [& body]
+  `(try
+     ~@body
+     (catch Throwable t#
+       (failed-future t#))))
 
 (deftype Future [state listeners]
   IDeref
@@ -93,7 +99,7 @@
     (let [p (promise)]
       (on-complete ma (fn [a]
                         (if (success? a)
-                          (on-complete (fmb (raw-value a))
+                          (on-complete (try-future (fmb (raw-value a)))
                                        (fn [b]
                                          (complete p b)))
                           (complete p a))))
@@ -130,8 +136,6 @@
         listeners (atom [])
         future (Future. state listeners)]
     (Promise. state listeners future)))
-
-
 
 (defn try* [f]
   (try
