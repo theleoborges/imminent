@@ -13,7 +13,6 @@
   (raw-value [this]))
 
 (defprotocol IFuture
-  (value        [this])
   (on-success   [this f])
   (on-failure   [this f])
   (on-complete  [this f])
@@ -21,4 +20,5 @@
   (flatmap      [this f]))
 
 (defprotocol IPromise
-  (complete [this value]))
+  (complete [this value])
+  (->future [this]))

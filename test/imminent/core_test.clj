@@ -76,7 +76,7 @@
   (testing "success"
     (let [result (-> (core/const-future 10)
                      (core/filter even?)
-                     core/value)]
+                     deref)]
 
       (is (instance? imminent.core.Success result))
       (is (= (core/raw-value result) 10)))
@@ -86,14 +86,14 @@
     (testing "failed predicate"
       (let [result (-> (core/const-future 10)
                        (core/filter odd?)
-                       core/value)]
+                       deref)]
         (is (instance? imminent.core.Failure result))
         (is (instance? java.util.NoSuchElementException (core/raw-value result)))))
 
     (testing "failed future"
       (let [result (-> (core/failed-future (ex-info "error" {}))
                        (core/filter odd?)
-                       core/value)]
+                       deref)]
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))
 

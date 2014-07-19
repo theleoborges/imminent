@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [map filter future promise sequence])
   (:require imminent.protocols
             [imminent.executors :as executors]
-            [imminent.util.namespaces :refer [import-vars]]))
+            [imminent.util.namespaces :refer [import-vars]])
+  (:import clojure.lang.IDeref))
 
 (set! *warn-on-reflection* true)
 
@@ -13,9 +14,9 @@
   IReturn
   success? failure? raw-value
   IFuture
-  value on-success on-failure on-complete filter flatmap
+  on-success on-failure on-complete filter flatmap
   IPromise
-  complete])
+  complete ->future])
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
@@ -55,12 +56,13 @@
     (dispatch f value)))
 
 (declare promise)
-(declare const-future)
 (declare from-try)
 
-(deftype Promise [listeners state]
+(deftype Future [state listeners]
+  IDeref
+  (deref [_]
+    @state)
   IFuture
-  (value [_] @state)
   (on-success   [this f]
     (on-complete this (fn [value]
                         (when (success? value)
@@ -81,14 +83,6 @@
                   a
                   (throw (java.util.NoSuchElementException. "Failed predicate"))))))
 
-  IPromise
-  (complete [this value]
-    (if (= @state ::unresolved)
-      (do
-        (reset! state value)
-        (dispatch-all @listeners value))
-      (throw (Exception. "Attempted to complete already completed promise"))))
-
   Functor
   (map [this f]
     (bind this (fn [a]
@@ -103,15 +97,41 @@
                                        (fn [b]
                                          (complete p b)))
                           (complete p a))))
-      p))
+      (->future p)))
 
   Object
-  (equals   [this other] (= (value this) (value other)))
-  (hashCode [this] (hash (value this)))
-  (toString [this] (pr-str (value this))))
+  (equals   [this other] (= @this @other))
+  (hashCode [this] (hash @this))
+  (toString [this] (pr-str @this)))
+
+
+(deftype Promise [state listeners future]
+  IDeref
+  (deref [_]
+    @state)
+
+  IPromise
+  (complete [this value]
+    (if (= @state ::unresolved)
+      (do
+        (reset! state value)
+        (dispatch-all @listeners value))
+      (throw (Exception. "Attempted to complete already completed promise"))))
+  (->future [this]
+    future)
+
+  Object
+  (equals   [this other] (= @this @other))
+  (hashCode [this] (hash @this))
+  (toString [this] (pr-str @this)))
 
 (defn promise []
-  (Promise. (atom []) (atom ::unresolved)))
+  (let [state     (atom ::unresolved)
+        listeners (atom [])
+        future (Future. state listeners)]
+    (Promise. state listeners future)))
+
+
 
 (defn try* [f]
   (try
@@ -124,19 +144,19 @@
     (.execute ^java.util.concurrent.Executor executors/*executor*
               (fn []
                 (complete p (try* task))))
-    p))
+    (->future p)))
 
 (defn from-try [f]
   (let [p (promise)]
     (complete p (try* f))
-    p))
+    (->future p)))
 
 (defn const-future [v]
   (let [p (promise)]
     (complete p (Success. v))
-    p))
+    (->future p)))
 
 (defn failed-future [e]
   (let [p (promise)]
     (complete p (Failure. e))
-    p))
+    (->future p)))

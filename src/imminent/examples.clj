@@ -1,7 +1,6 @@
 (ns imminent.examples
   (:refer-clojure :exclude [map filter future promise sequence])
   (:require [imminent.core :refer :all]
-            [imminent.protocols :refer :all]
             [imminent.executors :as executors]))
 
 (comment
@@ -27,4 +26,12 @@
                        (prn-to-repl (.getId (Thread/currentThread)))
                        (even? x))))
 
+  )
+
+(comment
+  (def p (promise))
+  (def f (->future p))
+  (complete p (success 10))
+  (on-complete f (fn [v]
+                   (prn-to-repl "got stuff" v)))
   )
