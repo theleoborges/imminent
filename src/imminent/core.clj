@@ -173,6 +173,10 @@
     (complete p (Failure. e))
     (->future p)))
 
+;;
+;; Future monad instance and convenience derived functions
+;;
+
 (def future-monad
   {:point const-future
    :bind  bind})
