@@ -1,9 +1,6 @@
 (ns imminent.protocols
   (:refer-clojure :exclude [map filter]))
 
-(defprotocol Functor
-  (map [this f]))
-
 (defprotocol IReturn
   (success?  [this])
   (failure?  [this])

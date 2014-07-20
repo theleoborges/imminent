@@ -10,8 +10,6 @@
 
 (import-vars
  [imminent.protocols
-  Functor
-  map
   IReturn
   success? failure? raw-value
   IFuture
@@ -20,6 +18,8 @@
   complete ->future]
 
  [imminent.util.monad
+  Functor
+  map
   Bind
   bind flatmap])
 

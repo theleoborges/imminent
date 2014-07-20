@@ -40,3 +40,13 @@
   (on-complete f (fn [v]
                    (prn-to-repl "got stuff" v)))
   )
+
+
+(comment
+  (let [tasks [(const-future 10)
+               (const-future 20)
+               (const-future 30)]]
+    (-> (sequence tasks)
+        (map (fn [xs]
+               (prn-to-repl xs)))))
+  )

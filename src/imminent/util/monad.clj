@@ -1,4 +1,8 @@
-(ns imminent.util.monad)
+(ns imminent.util.monad
+    (:refer-clojure :exclude [map]))
+
+(defprotocol Functor
+  (map [this f]))
 
 (defprotocol Bind
   (bind    [ma fmb])
