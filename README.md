@@ -28,6 +28,15 @@ The whole point of futures is being able to perform asynchronous operations. By 
 
 There are only a few. The most important properties are tested using test.check, a property-based testing framework. There are a few explicit tests to highlight certain properties. Have a look at these, they show some sample usages
 
+## Why not use core.async channels or streams/observables/rx/etc...?
+
+Short answer: semantics.
+
+core.async channels offer a fine grained coordination mechanism and uses lightweight threads. That makes it powerful but unsuited for IO operations as it can drain its threadpool quite quickly. Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub.
+
+Streams are useful when you have data which is naturally modelled as signals such as reading user keyboard input, mouse movement and pretty anything which is time-dependant and generates a continuous stream of values. It's overkill for one-off parallel computations.
+
+Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a combination of the 3 approaches.
 
 
 ## Usage
