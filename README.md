@@ -20,6 +20,10 @@ Both Futures and Promises implement `IDeref` so you can obtain the current value
 
 There is no blocking `get` operation at the moment.
 
+### Why both?
+
+Technically you need only a single data type to implement the functionality provided by futures. However this separation is helpful in preventing a future from being completed by the wrong code path. By making futures read-only, this gets mitigated.
+
 ### Executors
 
 The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. This can be controlled using the `*executor*` dynamic var in the `executors` namespace. It includes an `immediate-executor` which performs work in the current thread immediately. Useful for tests. 
@@ -41,6 +45,7 @@ Imminent provides the semantics needed for working with these one-off parallel c
 ## Priorities
 1. Correctness
 1. Rich set of combinators
+1. Documentation
 1. Performance 
 1. Clojurescript
  * could use core.async for this on the client-side
