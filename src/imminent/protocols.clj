@@ -2,9 +2,10 @@
   (:refer-clojure :exclude [map filter]))
 
 (defprotocol IReturn
-  (success?  [this])
-  (failure?  [this])
-  (raw-value [this]))
+  (success?    [this])
+  (failure?    [this])
+  (raw-value   [this])
+  (map-failure [this f]))
 
 (defprotocol IFuture
   (on-success   [this f])

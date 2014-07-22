@@ -37,8 +37,32 @@
   (def p (promise))
   (def f (->future p))
   (complete p (success 10))
-  (on-complete f (fn [v]
+  (on-success f (fn [v]
                    (prn-to-repl "got stuff" v)))
+  )
+
+(comment
+  (def p1 (promise))
+  (def f1 (->future p1))
+  (complete p1 (success 10))
+  @f1
+  (on-success f1 (fn [v]
+                   (prn "hmm")
+                   (prn-to-repl "got stuff" v)))
+
+  (on-failure f1 (fn [v]
+                   (prn "hmm")
+                   (prn-to-repl "got stuff" v)))
+
+
+  (def f2 (failed-future (Exception. "")))
+  (on-success f2 (fn [v]
+                   (prn "hmm")
+                   (prn-to-repl "got stuff on succ" v)))
+  (on-failure f2 (fn [v]
+                   (prn "hmm")
+                   (prn-to-repl "got stuff" v)))
+
   )
 
 

@@ -11,7 +11,7 @@
 (import-vars
  [imminent.protocols
   IReturn
-  success? failure? raw-value
+  success? failure? raw-value map-failure
   IFuture
   on-success on-failure on-complete filter
   IPromise
@@ -25,18 +25,22 @@
 
 (defrecord Success [v]
   IReturn
-  (success?  [this] true)
-  (failure?  [this] false)
-  (raw-value [this] v)
+  (success?    [this] true)
+  (failure?    [this] false)
+  (raw-value   [this] v)
+  (map-failure [this _]
+    this)
   Functor
   (map       [this f]
     (Success. (f v))))
 
 (defrecord Failure [e]
   IReturn
-  (success?  [this] false)
-  (failure?  [this] true)
-  (raw-value [this] e)
+  (success?    [this] false)
+  (failure?    [this] true)
+  (raw-value   [this] e)
+  (map-failure [this f]
+    (Failure. (f e)))
   Functor
   (map       [this _]
     this))
@@ -70,13 +74,11 @@
     @state)
   IFuture
   (on-success   [this f]
-    (on-complete this (fn [value]
-                        (when (success? value)
-                          (f (raw-value value))))))
+    (on-complete this (comp raw-value #(map % f))))
+
   (on-failure     [this f]
-    (on-complete this (fn [value]
-                        (when (failure? value)
-                          (f (raw-value value))))))
+    (on-complete this (comp raw-value #(map-failure % f))))
+
   (on-complete  [this f]
     (let [st @state]
       (if (= st ::unresolved)
@@ -125,6 +127,7 @@
         (reset! state value)
         (dispatch-all @listeners value))
       (throw (Exception. "Attempted to complete already completed promise"))))
+
   (->future [this]
     future)
 
