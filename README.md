@@ -42,6 +42,10 @@ Streams are useful when you have data which is naturally modelled as signals suc
 
 Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a combination of the 3 approaches.
 
+### Exception handling
+
+It exists and it follows certain principles. Expand on this.
+
 ## Priorities
 1. Correctness
 1. Rich set of combinators
