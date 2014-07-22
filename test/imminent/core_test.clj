@@ -151,7 +151,8 @@
       (are [x y ] (instance? x @y)
            imminent.core.Failure (core/map future bad-fn)
            imminent.core.Failure (core/filter future bad-fn)
-           imminent.core.Failure (core/bind future bad-fn)))))
+           imminent.core.Failure (core/bind future bad-fn)
+           imminent.core.Failure (core/sequence [(core/failed-future (ex-info "error" {}))])))))
 
 
 (deftest sequencing
