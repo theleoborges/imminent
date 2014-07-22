@@ -171,3 +171,27 @@
                        deref)]
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
+
+(deftest completion-handlers
+  (testing "success"
+    (let [result (atom nil)]
+      (-> (core/const-future 10) (core/on-success #(reset! result %)))
+      (is (= @result 10))))
+
+  (testing "failure"
+    (let [result (atom nil)]
+      (-> (core/failed-future (ex-info "error" {})) (core/on-failure #(reset! result %)))
+      (is (instance? clojure.lang.ExceptionInfo @result))))
+
+  (testing "completion"
+    (testing "success"
+      (let [result (atom nil)]
+        (-> (core/const-future "success") (core/on-complete #(reset! result %)))
+        (is (instance? imminent.core.Success @result))
+        (is (= (core/raw-value @result) "success"))))
+
+    (testing "failure"
+      (let [result (atom nil)]
+        (-> (core/failed-future (ex-info "error" {})) (core/on-complete #(reset! result %)))
+        (is (instance? imminent.core.Failure @result))
+        (is (instance? clojure.lang.ExceptionInfo (core/raw-value @result)))))))
