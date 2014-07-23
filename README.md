@@ -26,7 +26,7 @@ Technically you need only a single data type to implement the functionality prov
 
 ### Executors
 
-The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. This can be controlled using the `*executor*` dynamic var in the `executors` namespace. It includes an `immediate-executor` which performs work in the current thread immediately. Useful for tests. 
+The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes an `immediate-executor` which performs work in the current thread immediately. Useful for tests. 
 
 ## Tests
 
@@ -44,7 +44,9 @@ Imminent provides the semantics needed for working with these one-off parallel c
 
 ### Exception handling
 
-It exists and it follows certain principles. Expand on this.
+Imminent follows the patterns found in Compositional Event Systems such as RxJava: any exception thrown during the execution of a future or any of its combinators will result in a future containing a value of type `Failure`, wrapping the error/exception.
+
+Additionally, Futures provide `on-success`/`on-failure` event handlers to deal with success and failure values directly.
 
 ## Priorities
 1. Correctness
