@@ -1,7 +1,8 @@
 (ns imminent.examples
-  (:refer-clojure :exclude [map filter future promise sequence])
+  (:refer-clojure :exclude [map filter future promise sequence reduce])
   (:require [imminent.core :refer :all]
-            [imminent.executors :as executors]))
+            [imminent.executors :as executors]
+            [imminent.util.monad :as monad]))
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
@@ -73,4 +74,31 @@
     (-> (sequence tasks)
         (map (fn [xs]
                (prn-to-repl xs)))))
+  )
+
+(comment
+  (binding [executors/*executor* executors/immediate-executor]
+    (monad/fold-m future-monad
+                  (fn [a mb]
+                    ((:bind future-monad) mb (fn [b]
+                               (const-future (conj a b)))))
+                  []
+                  [(const-future 20) (const-future 30)]))
+
+  (binding [executors/*executor* executors/immediate-executor]
+    (monad/fold-m future-monad
+                  (fn [a mb]
+                    ((:bind future-monad) mb (fn [b]
+                                               (prn "got" b)
+                                               (const-future (conj a b)))))
+                  []
+                  [(const-future 20) (failed-future (Exception. "error")) (const-future 30)]))
+
+  (binding [executors/*executor* executors/immediate-executor]
+    (reduce + 0 [(const-future 20) (const-future 30)]))
+
+  (binding [executors/*executor* executors/immediate-executor]
+    (reduce + 0 [(const-future 20) (failed-future (Exception. "error")) (const-future 30)]))
+
+
   )

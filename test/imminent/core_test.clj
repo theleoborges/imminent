@@ -81,6 +81,9 @@
   (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
 
 
+(def failed-future (core/failed-future (ex-info "error" {})))
+
+
 (deftest mapping
   (testing "success"
     (let [result (-> (core/const-future 10)
@@ -93,7 +96,7 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [result (-> (core/failed-future (ex-info "error" {}))
+      (let [result (-> failed-future
                        (core/map #(* % %))
                        deref)]
         (is (instance? imminent.core.Failure result))
@@ -119,7 +122,7 @@
         (is (instance? java.util.NoSuchElementException (core/raw-value result)))))
 
     (testing "failed future"
-      (let [result (-> (core/failed-future (ex-info "error" {}))
+      (let [result (-> failed-future
                        (core/filter odd?)
                        deref)]
         (is (instance? imminent.core.Failure result))
@@ -137,7 +140,7 @@
       (is (= (core/raw-value result) 100))))
 
   (testing "failed future"
-    (let [result (-> (core/failed-future (ex-info "error" {}))
+    (let [result (-> failed-future
                      (core/bind (fn [n] (core/const-future (* n n))))
                      deref)]
       (is (instance? imminent.core.Failure result))
@@ -152,7 +155,7 @@
            imminent.core.Failure (core/map future bad-fn)
            imminent.core.Failure (core/filter future bad-fn)
            imminent.core.Failure (core/bind future bad-fn)
-           imminent.core.Failure (core/sequence [(core/failed-future (ex-info "error" {}))])))))
+           imminent.core.Failure (core/sequence [failed-future])))))
 
 
 (deftest sequencing
@@ -166,9 +169,26 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [result (-> [(core/const-future 10) (core/failed-future (ex-info "error" {}))]
+      (let [result (-> [(core/const-future 10) failed-future]
                        (core/sequence)
                        deref)]
+        (is (instance? imminent.core.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
+
+(deftest reducing
+  (testing "success"
+    (let [result (->> [(core/const-future 10) (core/const-future 20) (core/const-future 30)]
+                      (core/reduce + 0)
+                      deref)]
+
+      (is (instance? imminent.core.Success result))
+      (is (= (core/raw-value result) 60))))
+
+  (testing "failure"
+    (testing "failed future"
+      (let [result (->> [(core/const-future 10) failed-future]
+                        (core/reduce + 0)
+                        deref)]
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
 
@@ -180,7 +200,7 @@
 
   (testing "failure"
     (let [result (atom nil)]
-      (-> (core/failed-future (ex-info "error" {})) (core/on-failure #(reset! result %)))
+      (-> failed-future (core/on-failure #(reset! result %)))
       (is (instance? clojure.lang.ExceptionInfo @result))))
 
   (testing "completion"
@@ -192,6 +212,6 @@
 
     (testing "failure"
       (let [result (atom nil)]
-        (-> (core/failed-future (ex-info "error" {})) (core/on-complete #(reset! result %)))
+        (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value @result)))))))

@@ -26,3 +26,7 @@
   (reduce (lift2-m m conj)
           ((:point m) [])
           ms))
+
+(defn map-m [m f ms]
+  (-> (sequence-m m ms)
+      (map f)))

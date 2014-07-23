@@ -1,6 +1,7 @@
 (ns imminent.core
-  (:refer-clojure :exclude [map filter future promise sequence])
-  (:require imminent.protocols
+  (:refer-clojure :exclude [map filter future promise sequence reduce])
+  (:require [clojure.core :as clj]
+            imminent.protocols
             [imminent.util.monad :as m]
             [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]])
@@ -178,4 +179,7 @@
   {:point const-future
    :bind  bind})
 
-(def sequence (partial m/sequence-m future-monad))
+(def  sequence (partial m/sequence-m future-monad))
+
+(defn reduce [f seed ms]
+  (m/map-m future-monad #(clj/reduce f seed %) ms))
