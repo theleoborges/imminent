@@ -1,5 +1,5 @@
 (ns imminent.examples
-  (:refer-clojure :exclude [map filter future promise sequence reduce])
+  (:refer-clojure :exclude [map filter future promise sequence reduce await])
   (:require [imminent.core :refer :all]
             [imminent.executors :as executors]
             [imminent.util.monad :as monad]))
@@ -101,4 +101,14 @@
     (reduce + 0 [(const-future 20) (failed-future (Exception. "error")) (const-future 30)]))
 
 
+  )
+
+
+(comment
+  (def sleepy (future (fn []
+                        (Thread/sleep 5000)
+                        (prn-to-repl "awaking...")
+                        57)))
+  (prn-to-repl @(await sleepy))
+  (prn-to-repl "finished")
   )

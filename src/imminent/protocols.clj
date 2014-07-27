@@ -1,5 +1,5 @@
 (ns imminent.protocols
-  (:refer-clojure :exclude [map filter]))
+  (:refer-clojure :exclude [map filter await]))
 
 (defprotocol IReturn
   (success?    [this])
@@ -12,6 +12,9 @@
   (on-failure   [this f])
   (on-complete  [this f])
   (filter       [this f?]))
+
+(defprotocol IAwaitable
+  (await   [this]))
 
 (defprotocol IPromise
   (complete [this value])

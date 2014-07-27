@@ -1,5 +1,5 @@
 (ns imminent.core
-  (:refer-clojure :exclude [map filter future promise sequence reduce])
+  (:refer-clojure :exclude [map filter future promise sequence reduce await])
   (:require [clojure.core :as clj]
             imminent.protocols
             [imminent.util.monad :as m]
@@ -16,7 +16,9 @@
   IFuture
   on-success on-failure on-complete filter
   IPromise
-  complete ->future]
+  complete ->future
+  IAwaitable
+  await]
 
  [imminent.util.monad
   Functor
@@ -73,6 +75,7 @@
   IDeref
   (deref [_]
     @state)
+
   IFuture
   (on-success   [this f]
     (on-complete this (comp raw-value #(map % f))))
@@ -91,6 +94,13 @@
                 (if (pred? a)
                   a
                   (throw (java.util.NoSuchElementException. "Failed predicate"))))))
+
+  IAwaitable
+  (await [this]
+    (let [latch (java.util.concurrent.CountDownLatch. 1)]
+      (on-complete this (fn [_] (.countDown latch)))
+      (.await latch)
+      this))
 
   Functor
   (map [this f]
