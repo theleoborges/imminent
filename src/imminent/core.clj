@@ -5,7 +5,8 @@
             [imminent.util.monad :as m]
             [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]])
-  (:import clojure.lang.IDeref))
+  (:import clojure.lang.IDeref
+           [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
 
 (set! *warn-on-reflection* true)
 
@@ -97,10 +98,17 @@
 
   IAwaitable
   (await [this]
-    (let [latch (java.util.concurrent.CountDownLatch. 1)]
+    (let [latch (CountDownLatch. 1)]
       (on-complete this (fn [_] (.countDown latch)))
       (.await latch)
       this))
+
+  (await [this ms]
+    (let [latch (CountDownLatch. 1)]
+      (on-complete this (fn [_] (.countDown latch)))
+      (if-not (.await latch ms TimeUnit/MILLISECONDS)
+        (failed-future (TimeoutException. "Timeout waiting future"))
+        this)))
 
   Functor
   (map [this f]

@@ -14,7 +14,9 @@
   (filter       [this f?]))
 
 (defprotocol IAwaitable
-  (await   [this]))
+  (await
+    [this]
+    [this ms]))
 
 (defprotocol IPromise
   (complete [this value])

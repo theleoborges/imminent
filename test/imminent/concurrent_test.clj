@@ -40,3 +40,18 @@
             2432902008176640000
             265252859812191058636308480000000N]
            result))))
+
+
+(deftest await-timeout
+  (testing "success"
+    (let [result (-> (core/future (fn [] 42))
+                     (core/await 1000)
+                     deref)]
+      (is (instance? imminent.core.Success result))
+      (is (=  42 (core/raw-value result)))))
+
+  (testing "timeout"
+    (let [never-ending-future (core/->future (core/promise))
+          result @(core/await never-ending-future 10)]
+      (is (instance? imminent.core.Failure result))
+      (is (instance? java.util.concurrent.TimeoutException (core/raw-value result))))))
