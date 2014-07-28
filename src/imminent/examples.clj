@@ -111,4 +111,6 @@
                         57)))
   (prn-to-repl @(await sleepy))
   (prn-to-repl "finished")
+  (binding [executors/*executor* executors/immediate-executor]
+    (map const-future [1 2 3]))
   )

@@ -1,5 +1,6 @@
 (ns imminent.util.monad
-    (:refer-clojure :exclude [map]))
+  (:refer-clojure :exclude [map])
+  (require [clojure.core :as clj]))
 
 (defprotocol Functor
   (map [this f]))
@@ -28,5 +29,5 @@
           ms))
 
 (defn map-m [m f ms]
-  (-> (sequence-m m ms)
-      (map f)))
+  (->> (clj/map f ms)
+       (sequence-m m)))

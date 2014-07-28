@@ -200,4 +200,8 @@
 (def  sequence (partial m/sequence-m future-monad))
 
 (defn reduce [f seed ms]
-  (m/map-m future-monad #(clj/reduce f seed %) ms))
+  (-> (sequence ms)
+      (map #(clj/reduce f seed %))))
+
+(defn map-future [f ms]
+  (m/map-m future-monad f ms))

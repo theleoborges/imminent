@@ -146,11 +146,11 @@
       (is (instance? imminent.core.Failure result))
       (is (instance? clojure.lang.ExceptionInfo (core/raw-value result))))))
 
+(defn bad-fn [_] (throw (ex-info "bad, bad fn!" {})))
 
 (deftest exception-handling
   (testing "core functions don't blow up"
-    (let [bad-fn (fn [_] (throw (ex-info "bad, bad fn!" {})))
-          future (core/const-future 10)]
+    (let [future (core/const-future 10)]
       (are [x y ] (instance? x @y)
            imminent.core.Failure (core/map future bad-fn)
            imminent.core.Failure (core/filter future bad-fn)
@@ -169,7 +169,7 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [result (-> [(core/const-future 10) failed-future]
+      (let [result (-> [failed-future (core/const-future 10) failed-future]
                        (core/sequence)
                        deref)]
         (is (instance? imminent.core.Failure result))
@@ -215,3 +215,20 @@
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (core/raw-value @result)))))))
+
+(deftest mapping-futures
+  (testing "success"
+    (let [f      (comp core/future #(partial (fn [a] (* a a)) %))
+          result (-> (core/map-future f [1 2 3])
+                     deref)]
+
+      (is (instance? imminent.core.Success result))
+      (is (= (core/raw-value result) [1 4 9]))))
+
+  (testing "failure"
+    (testing "failed future"
+      (let [f      (comp core/future #(partial bad-fn %))
+            result (-> (core/map-future f [1 2 3])
+                       deref)]
+        (is (instance? imminent.core.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
