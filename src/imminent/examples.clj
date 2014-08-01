@@ -18,7 +18,7 @@
 
 
 (comment
-  (binding [executors/*executor* executors/immediate-executor])
+  (binding [executors/*executor* executors/blocking-executor])
   (def f1 (future (fn []
                     (Thread/sleep 5000)
                     (prn-to-repl (.getId (Thread/currentThread)))
@@ -77,7 +77,7 @@
   )
 
 (comment
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (monad/fold-m future-monad
                   (fn [a mb]
                     ((:bind future-monad) mb (fn [b]
@@ -85,7 +85,7 @@
                   []
                   [(const-future 20) (const-future 30)]))
 
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (monad/fold-m future-monad
                   (fn [a mb]
                     ((:bind future-monad) mb (fn [b]
@@ -94,10 +94,10 @@
                   []
                   [(const-future 20) (failed-future (Exception. "error")) (const-future 30)]))
 
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (reduce + 0 [(const-future 20) (const-future 30)]))
 
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (reduce + 0 [(const-future 20) (failed-future (Exception. "error")) (const-future 30)]))
 
 
@@ -111,6 +111,20 @@
                         57)))
   (prn-to-repl @(await sleepy))
   (prn-to-repl "finished")
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (map const-future [1 2 3]))
+  (def ^:dynamic *myvalue* "leo")
+
+  (binding [*myvalue* "enif"]
+    (prn-to-repl "value is " *myvalue*)
+    (let [tasks (repeat 3 (fn []
+                            (Thread/sleep 1000)
+                            (prn-to-repl "id " (.getId (Thread/currentThread)))
+                            (prn-to-repl "the name i have is " *myvalue*)))
+          conveyed (clojure.core/map #'clojure.core/binding-conveyor-fn tasks)
+          fs (clojure.core/map future conveyed)]
+      (prn-to-repl "doing...")
+      (await (sequence fs))
+      (prn-to-repl "done")))
+
   )

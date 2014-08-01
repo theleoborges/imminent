@@ -26,7 +26,7 @@ Technically you need only a single data type to implement the functionality prov
 
 ### Executors
 
-The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes an `immediate-executor` which performs work in the current thread immediately. Useful for tests. 
+The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes an `blocking-executor` which block on any given task, making it useful for testing.
 
 ## Tests
 
@@ -36,7 +36,7 @@ There are only a few. The most important properties are tested using test.check,
 
 Short answer: semantics.
 
-core.async channels offer a fine grained coordination mechanism and uses lightweight threads. That makes it powerful but unsuited for IO operations as it can drain its threadpool quite quickly. Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub.
+core.async channels offer a fine grained coordination mechanism and uses lightweight threads. That makes it powerful but unsuited for IO operations as it can drain its threadpool quite quickly. Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. Exception handling - see below - is also a little different.
 
 Streams are useful when you have data which is naturally modelled as signals such as reading user keyboard input, mouse movement and pretty anything which is time-dependant and generates a continuous stream of values. It's overkill for one-off parallel computations.
 
@@ -53,8 +53,6 @@ Additionally, Futures provide `on-success`/`on-failure` event handlers to deal w
 1. Rich set of combinators
 1. Documentation
 1. Performance 
-1. Clojurescript
- * could use core.async for this on the client-side
 
 
 ## Usage

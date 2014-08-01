@@ -55,3 +55,15 @@
           result @(core/await never-ending-future 10)]
       (is (instance? imminent.core.Failure result))
       (is (instance? java.util.concurrent.TimeoutException (core/raw-value result))))))
+
+(def ^:dynamic *myvalue* 7)
+(deftest thread-bindings
+  (binding [*myvalue* 42]
+    (let [result (->> (repeat 3 (fn [] *myvalue*))
+                      (map core/future)
+                      (core/reduce + 0)
+                      core/await
+                      deref
+                      core/raw-value)]
+      (is (= result
+             126)))))

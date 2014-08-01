@@ -5,7 +5,7 @@
 (def default-executor (java.util.concurrent.Executors/newCachedThreadPool))
 (def ^:dynamic *executor* default-executor)
 
-(def immediate-executor
+(def blocking-executor
   (reify Executor
     (execute [_ f]
-      (f))))
+      (.get (.submit default-executor f)))))

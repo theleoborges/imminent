@@ -56,8 +56,9 @@
   (Failure. v))
 
 (defn dispatch [f value]
-  (.execute ^java.util.concurrent.Executor executors/*executor*
-            #(f value)))
+  (let [f (#'clojure.core/binding-conveyor-fn f)]
+    (.execute ^java.util.concurrent.Executor executors/*executor*
+              #(f value))))
 
 (defn dispatch-all [listeners value]
   (doseq [f listeners]
@@ -168,7 +169,8 @@
       (Failure. t))))
 
 (defn future [task]
-  (let [p (promise)]
+  (let [p (promise)
+        task (#'clojure.core/binding-conveyor-fn task)]
     (.execute ^java.util.concurrent.Executor executors/*executor*
               (fn []
                 (complete p (try* task))))

@@ -13,7 +13,7 @@
 (def future-gen  (gen/fmap core/const-future (gen/not-empty gen/string-alpha-numeric)))
 
 (defn setup [f]
-  (binding [executors/*executor* executors/immediate-executor]
+  (binding [executors/*executor* executors/blocking-executor]
     (f)))
 
 (use-fixtures :each setup)
