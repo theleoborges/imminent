@@ -125,7 +125,8 @@
   (flatmap [ma fmb] (bind ma fmb))
 
   Object
-  (equals   [this other] (= @this @other))
+  (equals   [this other] (and (instance? Future other)
+                              (= @this @other)))
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
 
@@ -147,7 +148,8 @@
     future)
 
   Object
-  (equals   [this other] (= @this @other))
+  (equals   [this other] (and (instance? Promise other)
+                              (= @this @other)))
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
 
