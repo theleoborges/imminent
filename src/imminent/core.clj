@@ -49,6 +49,8 @@
   (map       [this _]
     this))
 
+(prefer-method print-method clojure.lang.IRecord clojure.lang.IDeref)
+
 (defn success [v]
   (Success. v))
 

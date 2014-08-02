@@ -193,6 +193,23 @@
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
+(deftest mapping-futures
+  (testing "success"
+    (let [f      (comp core/future #(partial (fn [a] (* a a)) %))
+          result (-> (core/map-future f [1 2 3])
+                     deref)]
+
+      (is (instance? imminent.core.Success result))
+      (is (= (deref result) [1 4 9]))))
+
+  (testing "failure"
+    (testing "failed future"
+      (let [f      (comp core/future #(partial bad-fn %))
+            result (-> (core/map-future f [1 2 3])
+                       deref)]
+        (is (instance? imminent.core.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
+
 (deftest completion-handlers
   (testing "success"
     (let [result (atom nil)]
@@ -216,20 +233,3 @@
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))
-
-(deftest mapping-futures
-  (testing "success"
-    (let [f      (comp core/future #(partial (fn [a] (* a a)) %))
-          result (-> (core/map-future f [1 2 3])
-                     deref)]
-
-      (is (instance? imminent.core.Success result))
-      (is (= (deref result) [1 4 9]))))
-
-  (testing "failure"
-    (testing "failed future"
-      (let [f      (comp core/future #(partial bad-fn %))
-            result (-> (core/map-future f [1 2 3])
-                       deref)]
-        (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
