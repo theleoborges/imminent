@@ -2,15 +2,96 @@
 
 Composable futures for Clojure
 
-## Brain dump
+## Table of Contents
+
+* [API docs](http://leonardoborges.github.com/imminent/)
+* [Motivation](#motivation)
+* [Setup](#setup)
+* [TL;DR](#tl-dr)
+* [Basic types](#basic-types)
+	* [Promise](#promise)
+	* [Future](#future)
+	  * [Why both?](#why-both)
+	* [IResult](#iresult)
+* [Creating futures](#creating-futures)		
+* [Combinators](#combinators)	
+* [Event handlers](#event-handlers)	
+* [Awaiting](#awaiting)
+* [Executors](#executors)	
+* [Usage](#usage)
+* [FAQ](#faq)
+	* [Why not use core.async?](#why-not-use-core-async)
+	* [Why not use reactive frameworks?](#why-not-use-core-async)	
+* [Exception Handling](#exception-handling)	
+* [Contributing](#contributing)
+* [TODO](#todo)
+* [CHANGELOG](https://github.com/leonardoborges/imminent/blob/master/CHANGELOG.md)
+* [CONTRIBUTORS](https://github.com/leonardoborges/imminent/graphs/contributors)
+* [License](#license)
+
+## Motivation
+
+Clojure already provides [futures](http://clojuredocs.org/clojure_core/clojure.core/future) and [promises](http://clojuredocs.org/clojure_core/clojure.core/future) so why another library?
+
+Simply put, because the (1) core abstractions don't compose and (2) in order to get the value out of one of them you have to necessarily block the current thread.
+
+Imminent solves both problems.
+
+## Setup
+
+Add the following to your `project.clj`:
+
+
+[![[bouncer "0.1.0"]](https://clojars.org/imminent/latest-version.svg)](https://clojars.org/imminent/latest-version.svg)
+
+
+Require the library:
+
+```clojure
+(require [imminent.core :as immi])
+```
+
+Now you should be ready to rock.
+ 
+## TL;DR
+
+For the impatient, this is what it looks like:
+
+
+```clojure
+  (def future-result
+    (->> (repeat 3 (fn []
+                     (Thread/sleep 1000)
+                     10))     ;; creates 3 "expensive" computations
+         (map immi/future)    ;; dispatches the computations in parallel
+         (immi/reduce + 0)))  ;; reduces over the futures
+
+  (immi/map future-result prn)
+  (prn "I don't block and can go about my business while I wait...")
+  
+
+  ;; will immediately print:
+  ;; "I don't block and can go about my business while I wait..."
+  ;; and then, roughly a second later, will print:
+  ;; 30
+```
+
+Two things to note in the above snippet:
+
+1. It doesn't block
+1. `immi/reduce` knows how to reduce over a list of futures, returning a new future with the reuslt. It's one of the many combinators included in the library
+
+I highly recommend you keep reading :)
+
+## Basic types
 
 The library contains 2 basic data types with distinct semantics: Promises and Futures. 
 
-### Promises
+### Promise
 
 Promises are write-once containers and can be in once of 3 states: Unresolved, resolved successfully or resolved unsuccessfully. You can obtain a Future from a Promise using the `->future` function.
 
-### Futures
+### Future
 
 Futures are read-only containers and, just like promises, can be in one of 3 states: Unresolved, resolved successfully or resolved unsuccessfully.
 
@@ -18,50 +99,263 @@ Futures will eventually provide a rich set of combinators (but a few are already
 
 Both Futures and Promises implement `IDeref` so you can obtain the current value.
 
-There is no blocking `get` operation at the moment.
+You can optionally block on a future by using `immi/await`.
 
-### Why both?
+#### Why both?
 
 Technically you need only a single data type to implement the functionality provided by futures. However this separation is helpful in preventing a future from being completed by the wrong code path. By making futures read-only, this gets mitigated.
 
-### Executors
+### IResult
 
-The whole point of futures is being able to perform asynchronous operations. By default, the `future` constructor uses an unbounded threadpool for doing work. The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes an `blocking-executor` which block on any given task, making it useful for testing.
+When a future completes - either in success or failure - its result will be wrapped in a value of type `IResult`. Only two types implement this protocol: `Success` and `Failure`
 
-## Tests
+Just like Futures, they are both [Functors](http://www.leonardoborges.com/writings/2012/11/30/monads-in-small-bites-part-i-functors/), meaning you can map over them just as you would with a list.
 
-There are only a few. The most important properties are tested using test.check, a property-based testing framework. There are a few explicit tests to highlight certain properties. Have a look at these, they show some sample usages
+There are two ways by which you can get hold of the value wrapped in a IResult. You can `deref` it or map a function over it:
 
-## Why not use core.async channels or streams/observables/rx/etc...?
+```clojure
+  (def result (imminent.core.Success. 10))
+  
+  (* 10 @result) ;; 100
+  (immi/map result #(* 10 %)) ;; #imminent.core.Success{:v 100}
+```
+
+You'll see the behaviour for `Failure` is a little different:
+
+```clojure
+  (def result (imminent.core.Failure. "Oops!"))
+  
+  (* 10 @result) ;; ClassCastException java.lang.String cannot be cast to java.lang.Number
+  (immi/map result #(* 10 %)) ;; #imminent.core.Failure{:e "Oops!"}
+```
+
+As you'd expect, the second line fails but if we try to map a function over a failure, it simply short-circuits and returns itself. 
+
+If you know you are dealing with a failure - because you asked using the `failure?` predicate, you can then use the `map-failure` function which has the semantics of `map` inverted:
+
+```clojure
+(immi/map-failure result (fn [e] (prn "the error is" e))) ;; "the error is" "Oops!"
+```
+
+## Creating futures
+
+The easiest way to create a new future is using `immi/const-future`. It creates a Future and immediately completes it with the provided value:
+
+```clojure
+  (immi/const-future 10) ;; #<Future@37c26da0: #imminent.core.Success{:v 10}>
+```
+
+This isn't very useful and is used mostly by the library itself.
+
+A more useful constructor is `immi/future` which dispatches the given function to the default `executors/*executor*` and returns a `Future`:
+
+```clojure
+  (immi/future (fn []
+                 (Thread/sleep 1000)
+                 ;; doing something important...
+                 "done.")) 
+  ;; #<Future@79d009ff: :imminent.core/unresolved>
+```
+
+## Combinators
+
+Imminent really pays off when you need to compose multiple operations over a future and/or over a list of futures. See the [API Docs](http://leonardoborges.github.com/imminent/) for a full list. Looking at the tests is another great way to get acquainted with them. Nevertheless, a few examples follow:
+
+
+### map
+
+```clojure
+  (-> (immi/const-future 10)
+      (immi/map #(* % %)))
+  ;; #<Future@34edb5aa: #imminent.core.Success{:v 100}>
+```
+
+### filter
+
+```clojure
+  (-> (immi/const-future 10)
+      (immi/filter odd?))
+  ;; #<Future@1c6b016: #imminent.core.Failure{:e #<NoSuchElementException java.util.NoSuchElementException: Failed predicate>}>
+```
+
+### bind/flatmap
+
+Monadic bind. Note how in the example below, we bind to a future a function that itself returns another future. `bind`/`flatmap` carries out the operations of both futures and flattens the result, returning a single future.
+
+```clojure
+  (-> (immi/const-future 10)
+      (immi/bind (fn [n] (immi/const-future (* n n)))))
+  ;; #<Future@3603dd0a: #imminent.core.Success{:v 100}>
+
+  (-> (immi/const-future 10)
+      (immi/flatmap (fn [n] (immi/const-future (* n n)))))
+  ;; #<Future@2385558: #imminent.core.Success{:v 100}>
+```  
+
+### sequence
+
+Given a list of futures, returns a future that will eventually contain a list of all results:
+
+```
+  (-> [(immi/const-future 10) (immi/const-future 20) (immi/const-future 30)]
+      immi/sequence)
+  ;; #<Future@32afbbca: #imminent.core.Success{:v [10 20 30]}>
+```
+
+### reduce
+
+Reduces over a list of futures.
+
+```clojure
+  (->> [(immi/const-future 10) (immi/const-future 20) (immi/const-future 30)]
+       (immi/reduce + 0))
+  ;; #<Future@36783858: #imminent.core.Success{:v 60}>
+```  
+
+### map-future
+
+Maps a future returning function over the given list and sequences the resulting futures.
+
+```clojure
+  (def f (fn [n] (immi/future (fn []
+                               (* n n)))))
+
+  (immi/map-future f [1 2 3])
+  ;; #<Future@69176437: #imminent.core.Success{:v [1 4 9]}>
+```  
+
+## Event handlers
+
+You can register functions to be called once a future has been completed.
+
+### on-complete
+
+Calls the given function with the future's result type:
+
+```clojure
+  (-> (immi/const-future 42)
+      (immi/on-complete prn))
+
+  ;; #imminent.core.Success{:v 42}
+```
+
+### on-success
+
+If successful, calls the supplied function with the value wrapped in the `IResult` type, `Success`.
+
+```clojure
+  (-> (immi/const-future 42)
+      (immi/on-success prn))
+
+  ;; 42
+```
+
+### on-failure
+
+If failed, calls the supplied function with the value wrapped in the `IResult` type, `Failure`.  
+
+```clojure
+  (-> (immi/failed-future "Error")
+      (immi/on-failure prn))
+
+  ;; "Error"
+```  
+
+## Awaiting
+
+Futures implement the `IAwaitable` protocol for the scenario where you truly need to block and wait for a future to complete:
+
+```clojure
+  (def result (->> (repeat 3 (fn []
+                               (Thread/sleep 1000)
+                               10)) 
+                   (map immi/future) 
+                   (immi/reduce + 0)))
+  @(immi/await result) ;; will block here until all futures are done
+  
+  ;; #<Future@485bceb6: #imminent.core.Success{:v 30}>
+```
+
+You can optionally provide a timeout, after which an Exception is thrown if the Future hasn't completed yet:
+
+```clojure
+  (immi/await (immi/future (fn []
+                               (Thread/sleep 5000)))
+              500) ;; waits for 500 ms at most
+  ;; #<Future@7d27f6c3: #imminent.core.Failure{:e #<TimeoutException java.util.concurrent.TimeoutException: Timeout waiting future>}>
+```
+
+
+## Executors
+
+The whole point of futures is being able to perform parallel tasks. By default, the `future` constructor uses an unbounded thread pool for doing work - this might change in upcoming releases. 
+
+The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes a `blocking-executor` which blocks on any given task, making it useful for testing:
+
+```clojure
+  (binding [executors/*executor* executors/blocking-executor]
+    (-> (immi/future (fn []
+                       (Thread/sleep 5000)
+                       41))
+        (immi/map inc))) ;; Automatically blocks here, without the need for `await`
+
+  ;; #<Future@ac1c71d: #imminent.core.Success{:v 42}>
+```
+
+
+## FAQ
+
+### Why not use core.async?
 
 Short answer: semantics.
 
-core.async channels offer a fine grained coordination mechanism and uses lightweight threads. That makes it powerful but unsuited for IO operations as it can drain its threadpool quite quickly. Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. Exception handling - see below - is also a little different.
+The longer version:
 
-Streams are useful when you have data which is naturally modelled as signals such as reading user keyboard input, mouse movement and pretty anything which is time-dependant and generates a continuous stream of values. It's overkill for one-off parallel computations.
+[core.async](https://github.com/clojure/core.async) channels offer a fine grained coordination mechanism and uses lightweight threads which can be parked, thus optimizing thread's idle time. 
 
-Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a combination of the 3 approaches.
+This makes it powerful but unsuited for IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread is tied up, waiting on a blocking IO operation, rendering its otherwise idle time unusable.
 
-### Exception handling
+Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. 
 
-Imminent follows the patterns found in Compositional Event Systems such as RxJava: any exception thrown during the execution of a future or any of its combinators will result in a future containing a value of type `Failure`, wrapping the error/exception.
+core.async will also swallow exceptions by default and this is in contrast with what imminent provides as you can see in the [Exception Handling](#exception-handling) section.
+
+### Why not use reactive frameworks?
+
+Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It's overkill for one-off parallel computations.
+
+Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a mix of the 3 approaches.
+
+## Exception handling
+
+Imminent follows the patterns found in Compositional Event Systems such as RxJava: any exception thrown during the execution of a future or any of its combinators will result in a future containing a value of type `Failure`. This value wraps the error/exception.
 
 Additionally, Futures provide `on-success`/`on-failure` event handlers to deal with success and failure values directly.
 
-## Priorities
-1. Correctness
-1. Rich set of combinators
-1. Documentation
-1. Performance 
+## Contributing
 
+Pull requests are not only welcome but highly encouraged! Simply make sure your PR contains passing tests for your bug fix.
 
-## Usage
+If you would like to submit a PR for a new feature, open an issue first as someone else - or even myself - might already be working on it.
 
-Coming soon...
+Feedback on both this library and this guide is welcome.
+
+### Running the tests
+
+Imminent has been developed and tested using Clojure 1.6. It should however work with Clojure 1.5 as well.
+
+To run the tests:
+
+```bash
+λ lein test
+```
+
+## TODO
+
+- Improve documentation
 
 ## License
 
-Copyright © 2014 Leonardo Borges
+Copyright © 2014 [Leonardo Borges](http://www.leonardoborges.com)
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
