@@ -35,7 +35,7 @@ Clojure already provides [futures](http://clojuredocs.org/clojure_core/clojure.c
 
 Simply put, because the (1) core abstractions don't compose and (2) in order to get the value out of one of them you have to necessarily block the current thread.
 
-Imminent solves both problems.
+Imminent solves both problems. It is also heavily inspired by Scala's Futures and Twitter Futures.
 
 ## Setup
 
