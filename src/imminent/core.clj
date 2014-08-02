@@ -57,17 +57,6 @@
 (defn failure [v]
   (Failure. v))
 
-(defn dispatch
-  ([f value] (dispatch #(f value)))
-  ([f]
-     (let [f (#'clojure.core/binding-conveyor-fn f)]
-       (.execute ^java.util.concurrent.Executor executors/*executor*
-                 f))))
-
-(defn dispatch-all [listeners value]
-  (doseq [f listeners]
-    (dispatch f value)))
-
 (declare promise)
 (declare from-try)
 (declare failed-future)
@@ -93,7 +82,7 @@
     (let [st @state]
       (if (= st ::unresolved)
         (swap! listeners conj f)
-        (dispatch f st))))
+        (executors/dispatch f st))))
 
   (filter [this pred?]
     (map this (fn [a]
@@ -149,7 +138,7 @@
     (if (= @state ::unresolved)
       (do
         (reset! state value)
-        (dispatch-all @listeners value))
+        (executors/dispatch-all @listeners value))
       (throw (Exception. "Attempted to complete already completed promise"))))
 
   (->future [this]
@@ -174,7 +163,7 @@
 
 (defn future [task]
   (let [p (promise)]
-    (dispatch (fn [] (complete p (try* task))))
+    (executors/dispatch (fn [] (complete p (try* task))))
     (->future p)))
 
 (defn from-try [f]
