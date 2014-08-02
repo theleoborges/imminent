@@ -7,6 +7,8 @@
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer (defspec)]))
 
+(set! *warn-on-reflection* true)
+
 ;; This test suite uses imminent.executors/default-executor, backed by a real thread pool
 ;; Tests in here will tend to be slower in nature but important to make sure we are not
 ;; causing concurrency related issues

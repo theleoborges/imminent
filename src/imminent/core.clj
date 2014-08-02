@@ -8,8 +8,6 @@
   (:import clojure.lang.IDeref
            [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
 
-(set! *warn-on-reflection* true)
-
 (import-vars
  [imminent.protocols
   IReturn

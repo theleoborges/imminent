@@ -7,6 +7,7 @@
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer (defspec)]))
 
+(set! *warn-on-reflection* true)
 
 (def success-gen (gen/fmap core/success (gen/not-empty gen/string-alpha-numeric)))
 (def failure-gen (gen/fmap core/failure (gen/not-empty gen/string-alpha-numeric)))
