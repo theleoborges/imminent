@@ -13,7 +13,7 @@
 (import-vars
  [imminent.protocols
   IReturn
-  success? failure? raw-value map-failure
+  success? failure? map-failure
   IFuture
   on-success on-failure on-complete filter
   IPromise
@@ -28,10 +28,11 @@
   bind flatmap])
 
 (defrecord Success [v]
+  IDeref
+  (deref [_] v)
   IReturn
   (success?    [this] true)
   (failure?    [this] false)
-  (raw-value   [this] v)
   (map-failure [this _]
     this)
   Functor
@@ -39,10 +40,11 @@
     (Success. (f v))))
 
 (defrecord Failure [e]
+  IDeref
+  (deref [_] e)
   IReturn
   (success?    [this] false)
   (failure?    [this] true)
-  (raw-value   [this] e)
   (map-failure [this f]
     (Failure. (f e)))
   Functor
@@ -80,10 +82,10 @@
 
   IFuture
   (on-success   [this f]
-    (on-complete this (comp raw-value #(map % f))))
+    (on-complete this (comp deref #(map % f))))
 
   (on-failure     [this f]
-    (on-complete this (comp raw-value #(map-failure % f))))
+    (on-complete this (comp deref #(map-failure % f))))
 
   (on-complete  [this f]
     (let [st @state]
@@ -121,7 +123,7 @@
     (let [p (promise)]
       (on-complete ma (fn [a]
                         (if (success? a)
-                          (on-complete (try-future (fmb (raw-value a)))
+                          (on-complete (try-future (fmb (deref a)))
                                        (fn [b]
                                          (complete p b)))
                           (complete p a))))

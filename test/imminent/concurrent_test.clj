@@ -34,12 +34,11 @@
                 ns)
         result (-> (core/sequence fs)
                    core/await
-                   deref
-                   core/raw-value)]
+                   deref)]
     (is (= [3628800
             2432902008176640000
             265252859812191058636308480000000N]
-           result))))
+           @result))))
 
 
 (deftest await-timeout
@@ -48,13 +47,13 @@
                      (core/await 1000)
                      deref)]
       (is (instance? imminent.core.Success result))
-      (is (=  42 (core/raw-value result)))))
+      (is (=  42 @result))))
 
   (testing "timeout"
     (let [never-ending-future (core/->future (core/promise))
           result @(core/await never-ending-future 10)]
       (is (instance? imminent.core.Failure result))
-      (is (instance? java.util.concurrent.TimeoutException (core/raw-value result))))))
+      (is (instance? java.util.concurrent.TimeoutException (deref result))))))
 
 (def ^:dynamic *myvalue* 7)
 (deftest thread-bindings
@@ -64,6 +63,6 @@
                       (core/reduce + 0)
                       core/await
                       deref
-                      core/raw-value)]
+                      deref)]
       (is (= result
              126)))))

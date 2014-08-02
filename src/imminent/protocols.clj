@@ -4,7 +4,6 @@
 (defprotocol IReturn
   (success?    [this])
   (failure?    [this])
-  (raw-value   [this])
   (map-failure [this f]))
 
 (defprotocol IFuture

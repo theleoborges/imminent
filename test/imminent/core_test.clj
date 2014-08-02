@@ -91,7 +91,7 @@
                      deref)]
 
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) 100)))
+      (is (= (deref result) 100)))
     )
 
   (testing "failure"
@@ -100,7 +100,7 @@
                        (core/map #(* % %))
                        deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))
     ))
 
 (deftest filtering
@@ -110,7 +110,7 @@
                      deref)]
 
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) 10)))
+      (is (= (deref result) 10)))
     )
 
   (testing "failure"
@@ -119,14 +119,14 @@
                        (core/filter odd?)
                        deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? java.util.NoSuchElementException (core/raw-value result)))))
+        (is (instance? java.util.NoSuchElementException (deref result)))))
 
     (testing "failed future"
       (let [result (-> failed-future
                        (core/filter odd?)
                        deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))
 
     ))
 
@@ -137,14 +137,14 @@
                      (core/bind (fn [n] (core/const-future (* n n))))
                      deref)]
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) 100))))
+      (is (= (deref result) 100))))
 
   (testing "failed future"
     (let [result (-> failed-future
                      (core/bind (fn [n] (core/const-future (* n n))))
                      deref)]
       (is (instance? imminent.core.Failure result))
-      (is (instance? clojure.lang.ExceptionInfo (core/raw-value result))))))
+      (is (instance? clojure.lang.ExceptionInfo (deref result))))))
 
 (defn bad-fn [_] (throw (ex-info "bad, bad fn!" {})))
 
@@ -165,7 +165,7 @@
                      deref)]
 
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) [10 20 30]))))
+      (is (= (deref result) [10 20 30]))))
 
   (testing "failure"
     (testing "failed future"
@@ -173,7 +173,7 @@
                        (core/sequence)
                        deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 (deftest reducing
   (testing "success"
@@ -182,7 +182,7 @@
                       deref)]
 
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) 60))))
+      (is (= (deref result) 60))))
 
   (testing "failure"
     (testing "failed future"
@@ -190,7 +190,7 @@
                         (core/reduce + 0)
                         deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 (deftest completion-handlers
   (testing "success"
@@ -208,13 +208,13 @@
       (let [result (atom nil)]
         (-> (core/const-future "success") (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Success @result))
-        (is (= (core/raw-value @result) "success"))))
+        (is (= (deref @result) "success"))))
 
     (testing "failure"
       (let [result (atom nil)]
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value @result)))))))
+        (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))
 
 (deftest mapping-futures
   (testing "success"
@@ -223,7 +223,7 @@
                      deref)]
 
       (is (instance? imminent.core.Success result))
-      (is (= (core/raw-value result) [1 4 9]))))
+      (is (= (deref result) [1 4 9]))))
 
   (testing "failure"
     (testing "failed future"
@@ -231,4 +231,4 @@
             result (-> (core/map-future f [1 2 3])
                        deref)]
         (is (instance? imminent.core.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (core/raw-value result)))))))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
