@@ -60,7 +60,9 @@
 (declare promise)
 (declare from-try)
 (declare failed-future)
-(defmacro try-future [& body]
+(defmacro try-future
+  "Wraps body in a try/catch. If an exception is thrown, returns a Future which yields a Failure containg the exception."
+  [& body]
   `(try
      ~@body
      (catch Throwable t#
@@ -149,34 +151,45 @@
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
 
-(defn promise []
+(defn promise
+  "Creates a new, unresolved promise."
+  []
   (let [state     (atom ::unresolved)
         listeners (atom [])
         future (Future. state listeners)]
     (Promise. state listeners future)))
 
-(defn try* [f]
+(defn try*
+  "Wraps `f` in a try/catch. Returns the result of `f` in a `Success` type if successful. Returns a `Failure` containing the exception otherwise."
+  [f]
   (try
     (Success. (f))
     (catch Throwable t
       (Failure. t))))
 
-(defn future [task]
+(defn future
+  "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`"
+  [task]
   (let [p (promise)]
     (executors/dispatch (fn [] (complete p (try* task))))
     (->future p)))
 
-(defn from-try [f]
+(defn from-try
+  "Creates a future from a function `f`. See `try*`"
+  [f]
   (let [p (promise)]
     (complete p (try* f))
     (->future p)))
 
-(defn const-future [v]
+(defn const-future
+  "Creates a new future and immediately completes it successfully with `v`"
+  [v]
   (let [p (promise)]
     (complete p (Success. v))
     (->future p)))
 
 (defn failed-future [e]
+  "Creates a new future and immediately completes it with the Failure `e`"
   (let [p (promise)]
     (complete p (Failure. e))
     (->future p)))
@@ -189,11 +202,17 @@
   {:point const-future
    :bind  bind})
 
-(def  sequence (partial m/sequence-m future-monad))
+(def sequence
+  "Given a list of futures, returns a future that will eventually contain a list of the results yielded by all futures. If any future fails, returns a Future representing that failure"
+  (partial m/sequence-m future-monad))
 
-(defn reduce [f seed ms]
+(defn reduce
+  "Returns a Future containing a list of the results yielded by all futures in `ms` further reduced using `f` and `seed`. See `sequence` and `map`"
+  [f seed ms]
   (-> (sequence ms)
       (map #(clj/reduce f seed %))))
 
-(defn map-future [f ms]
-  (m/map-m future-monad f ms))
+(defn map-future
+  "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"
+  [f vs]
+  (m/map-m future-monad f vs))

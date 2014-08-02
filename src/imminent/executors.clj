@@ -12,12 +12,15 @@
 
 
 (defn dispatch
+  "Dispatches the given fuction to the current *executor*. If given a value, dispatches a function which when called applied `f` to `value`"
   ([f value] (dispatch #(f value)))
   ([f]
      (let [f (#'clojure.core/binding-conveyor-fn f)]
        (.execute ^java.util.concurrent.Executor *executor*
                  f))))
 
-(defn dispatch-all [listeners value]
-  (doseq [f listeners]
+(defn dispatch-all
+  "Dispatches all functions in `fs` to the current *executor* and value `value`"
+  [fs value]
+  (doseq [f fs]
     (dispatch f value)))
