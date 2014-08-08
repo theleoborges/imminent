@@ -195,7 +195,7 @@
 
 (deftest mapping-futures
   (testing "success"
-    (let [f      (comp core/future-call #(partial (fn [a] (* a a)) %))
+    (let [f      #(core/future (* % %))
           result (-> (core/map-future f [1 2 3])
                      deref)]
 
@@ -204,7 +204,7 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [f      (comp core/future-call #(partial bad-fn %))
+      (let [f      #(core/future (bad-fn %))
             result (-> (core/map-future f [1 2 3])
                        deref)]
         (is (instance? imminent.core.Failure result))
