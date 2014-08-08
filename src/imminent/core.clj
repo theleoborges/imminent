@@ -169,12 +169,17 @@
     (catch Throwable t
       (Failure. t))))
 
-(defn future
+(defn future-call
   "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`"
   [task]
   (let [p (promise)]
     (executors/dispatch (fn [] (complete p (try* task))))
     (->future p)))
+
+(defmacro future
+  "Dispatches `body` on a separate thread and returns a future that will eventually contain the result. See `future-call`"
+  [& body]
+  `(future-call (fn [] ~@body)))
 
 (defn from-try
   "Creates a future from a function `f`. See `try*`"

@@ -32,7 +32,7 @@
 
 (deftest parallel-factorial
   (let [ns [10 20 30]
-        fs (map (comp core/future #(partial slow-fact %))
+        fs (map (comp core/future-call #(partial slow-fact %))
                 ns)
         result (-> (core/sequence fs)
                    core/await
@@ -45,7 +45,7 @@
 
 (deftest await-timeout
   (testing "success"
-    (let [result (-> (core/future (fn [] 42))
+    (let [result (-> (core/future-call (fn [] 42))
                      (core/await 1000)
                      deref)]
       (is (instance? imminent.core.Success result))
@@ -61,7 +61,7 @@
 (deftest thread-bindings
   (binding [*myvalue* 42]
     (let [result (->> (repeat 3 (fn [] *myvalue*))
-                      (map core/future)
+                      (map core/future-call)
                       (core/reduce + 0)
                       core/await
                       deref
