@@ -1,5 +1,5 @@
 (ns imminent.core
-  (:refer-clojure :exclude [map filter future promise sequence reduce await])
+  (:refer-clojure :exclude [map filter future future-call promise sequence reduce await])
   (:require [clojure.core :as clj]
             imminent.protocols
             [imminent.util.monad :as m]

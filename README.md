@@ -65,7 +65,7 @@ For the impatient, this is what it looks like:
     (->> (repeat 3 (fn []
                      (Thread/sleep 1000)
                      10))     ;; creates 3 "expensive" computations
-         (map immi/future)    ;; dispatches the computations in parallel
+         (map immi/future-call)    ;; dispatches the computations in parallel
          (immi/reduce + 0)))  ;; reduces over the futures
 
   (immi/map future-result prn)
@@ -149,13 +149,22 @@ The easiest way to create a new future is using `immi/const-future`. It creates 
 
 This isn't very useful and is used mostly by the library itself.
 
-A more useful constructor is `immi/future` which dispatches the given function to the default `executors/*executor*` and returns a `Future`:
+A more useful constructor is `immi/future-call` which dispatches the given function to the default `executors/*executor*` and returns a `Future`:
 
 ```clojure
-  (immi/future (fn []
-                 (Thread/sleep 1000)
-                 ;; doing something important...
-                 "done.")) 
+  (immi/future-call (fn []
+                      (Thread/sleep 1000)
+                      ;; doing something important...
+                      "done.")) 
+  ;; #<Future@79d009ff: :imminent.core/unresolved>
+```
+
+There is also a macro, `immi/future`, which is simply a convenient wrapper around `immi/future-call`:
+
+```clojure
+  (immi/future (Thread/sleep 1000)
+               ;; doing something important...
+               "done.")    
   ;; #<Future@79d009ff: :imminent.core/unresolved>
 ```
 
@@ -219,8 +228,7 @@ Reduces over a list of futures.
 Maps a future returning function over the given list and sequences the resulting futures.
 
 ```clojure
-  (def f (fn [n] (immi/future (fn []
-                               (* n n)))))
+  (def f #(immi/future (* % %)))
 
   (immi/map-future f [1 2 3])
   ;; #<Future@69176437: #imminent.core.Success{:v [1 4 9]}>
@@ -271,7 +279,7 @@ Futures implement the `IAwaitable` protocol for the scenario where you truly nee
   (def result (->> (repeat 3 (fn []
                                (Thread/sleep 1000)
                                10)) 
-                   (map immi/future) 
+                   (map immi/future-call) 
                    (immi/reduce + 0)))
   @(immi/await result) ;; will block here until all futures are done
   
@@ -281,8 +289,8 @@ Futures implement the `IAwaitable` protocol for the scenario where you truly nee
 You can optionally provide a timeout, after which an Exception is thrown if the Future hasn't completed yet:
 
 ```clojure
-  (immi/await (immi/future (fn []
-                               (Thread/sleep 5000)))
+  (immi/await (immi/future-call (fn []
+                                  (Thread/sleep 5000)))
               500) ;; waits for 500 ms at most
   ;; #<Future@7d27f6c3: #imminent.core.Failure{:e #<TimeoutException java.util.concurrent.TimeoutException: Timeout waiting future>}>
 ```
@@ -296,10 +304,10 @@ The user has fine grained control over this by using the `executors/*executor*` 
 
 ```clojure
   (binding [executors/*executor* executors/blocking-executor]
-    (-> (immi/future (fn []
-                       (Thread/sleep 5000)
-                       41))
-        (immi/map inc))) ;; Automatically blocks here, without the need for `await`
+      (-> (immi/future
+            (Thread/sleep 5000)
+            41)
+          (immi/map inc))) ;; Automatically blocks here, without the need for `await`
 
   ;; #<Future@ac1c71d: #imminent.core.Success{:v 42}>
 ```
