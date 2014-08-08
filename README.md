@@ -39,6 +39,8 @@ Imminent solves both problems. It is also heavily inspired by Scala's Futures an
 
 ## Setup
 
+>This is super alpha quality at this stage as it hasn't been battle tested enough. You've been warned :)
+
 Add the following to your `project.clj`:
 
 
@@ -313,7 +315,7 @@ The longer version:
 
 [core.async](https://github.com/clojure/core.async) channels offer a fine grained coordination mechanism and uses lightweight threads which can be parked, thus optimizing thread's idle time. 
 
-This makes it powerful but unsuited for IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread is tied up, waiting on a blocking IO operation, rendering its otherwise idle time unusable.
+This makes it powerful but unsuited for [blocking]IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread is remains blocked waiting on the blocking IO operation. This renders the thread's otherwise idle time unusable.
 
 Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. 
 
