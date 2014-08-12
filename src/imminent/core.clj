@@ -65,7 +65,7 @@
   [& body]
   `(try
      ~@body
-     (catch Throwable t#
+     (catch Exception t#
        (failed-future t#))))
 
 (deftype Future [state listeners]
@@ -166,7 +166,7 @@
   [f]
   (try
     (Success. (f))
-    (catch Throwable t
+    (catch Exception t
       (Failure. t))))
 
 (defn future-call
