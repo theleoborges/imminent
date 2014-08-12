@@ -57,33 +57,55 @@ Now you should be ready to rock.
  
 ## TL;DR
 
-For the impatient, this is what it looks like:
-
+For the impatient, I've included a couple of examples below. I've chosen to translate the examples presented by [Ben Christensen](https://twitter.com/benjchristensen) - of RxJava - in [this gist](https://gist.github.com/benjchristensen/4671081). Albeit them being in Java, they highlight perfectly the problem with blocking futures. Here's their Clojure equivalent:
 
 ```clojure
-  (def future-result
-    (->> (repeat 3 (fn []
-                     (Thread/sleep 1000)
-                     10))     ;; creates 3 "expensive" computations
-         (map immi/future-call)    ;; dispatches the computations in parallel
-         (immi/reduce + 0)))  ;; reduces over the futures
+;;
+;; Example 1, 2 & 3 are handled by the approach below
+;; Original examples: https://gist.github.com/benjchristensen/4671081#file-futuresb-java-L13
+;;
 
-  (immi/map future-result prn)
-  (prn "I don't block and can go about my business while I wait...")
-  
 
-  ;; will immediately print:
-  ;; "I don't block and can go about my business while I wait..."
-  ;; and then, roughly a second later, will print:
-  ;; 30
+(defn example-1 []
+  (let [f1     (immi/future (remote-service-a))
+        f2     (immi/future (remote-service-b))
+        f3     (-> f1 (immi/map #(remote-service-c %)))
+        f4     (-> f2 (immi/map #(remote-service-d %)))
+        f5     (-> f2 (immi/map #(remote-service-e %)))
+        result (immi/sequence [f3 f4 f5])]
+    (immi/on-success result
+                     (fn [[r3 r4 r5]]
+                       (prn (format "%s => %s" r3 (* r4 r5)))))))
+                       
+
+;;
+;; Example 4 & 5 are handled by the approach below
+;; Original examples: https://gist.github.com/benjchristensen/4671081#file-futuresb-java-L106
+;;
+
+(defn do-more-work [x]
+  (prn "do more work => " x))
+
+(defn example-4 []
+  (let [futures (conj []
+                      (immi/future (remote-service-a))
+                      (immi/future (remote-service-b))
+                      (immi/future (remote-service-c "A"))
+                      (immi/future (remote-service-c "B"))
+                      (immi/future (remote-service-c "C"))
+                      (immi/future (remote-service-d 1))
+                      (immi/future (remote-service-e 2))
+                      (immi/future (remote-service-e 3))
+                      (immi/future (remote-service-e 4))
+                      (immi/future (remote-service-e 5)))]
+    (doseq [f futures]
+      (immi/on-success f do-more-work))))
 ```
 
-Two things to note in the above snippet:
+Both examples above are non-blcoking and use combinators to operate over single futures or a sequence of futures. The runnable examples can be found under `examples/netflix.clj`
 
-1. It doesn't block
-1. `immi/reduce` knows how to reduce over a list of futures, returning a new future with the reuslt. It's one of the many combinators included in the library
 
-I highly recommend you keep reading :)
+I highly recommend you keep reading for the full list :)
 
 ## Basic types
 

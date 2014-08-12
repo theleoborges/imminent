@@ -1,7 +1,6 @@
-(ns ^:no-doc imminent.examples
-  (:require [imminent.core :as immi]
-            [imminent.executors :as executors]
-            [imminent.util.monad :as monad]))
+(require '[imminent.core :as immi]
+         '[imminent.executors :as executors]
+         '[imminent.util.monad :as monad])
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
