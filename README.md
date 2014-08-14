@@ -345,7 +345,7 @@ The longer version:
 
 [core.async](https://github.com/clojure/core.async) channels offer a fine grained coordination mechanism and uses lightweight threads which can be parked, thus optimizing thread's idle time. 
 
-This makes it powerful but unsuited for [blocking]IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread is remains blocked waiting on the blocking IO operation. This renders the thread's otherwise idle time unusable.
+This makes it powerful but unsuited for [blocking]IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread remains blocked waiting on the blocking IO operation. This renders the thread's otherwise idle time unusable.
 
 Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. 
 
@@ -353,7 +353,7 @@ core.async will also swallow exceptions by default and this is in contrast with 
 
 ### Why not use reactive frameworks?
 
-Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It's overkill for one-off parallel computations.
+Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It can be overkill for one-off parallel computations.
 
 Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a mix of the 3 approaches.
 
