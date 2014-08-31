@@ -210,6 +210,26 @@
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
+(deftest filtering-futures
+  (testing "success"
+    (let [pred?      (fn [f]
+                       (let [p (core/promise)]
+                         (core/on-complete f (fn [result]
+                                               (core/complete p (-> result
+                                                                    core/success?
+                                                                    core/success))))
+                         (core/->future p)))
+          successful-futures (-> (core/filter-future pred? [(core/const-future 10)
+                                                            failed-future
+                                                            (core/const-future 30)])
+                                 deref ;; unwraps the future
+                                 deref ;; unwraps IResult
+                                 core/sequence ;; sequences the list of successful futures
+                                 )
+          result (-> successful-futures deref deref)]
+
+      (is (= result [10 30])))))
+
 (deftest completion-handlers
   (testing "success"
     (let [result (atom nil)]

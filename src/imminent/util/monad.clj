@@ -41,3 +41,21 @@
   "Given a monad `m`, a function `f` and a list of values `vs`, it maps `f` over `vs` finally sequencing all resulting monads. See `sequence-m`"
   (->> (clj/map f vs)
        (sequence-m m)))
+
+(defn filter-m [m pred? vs]
+  "`m` is a monad
+  `pred?` is a function that receives a `v` from `vs` and returns a monad that yields a boolean
+  `vs` is a list of values
+
+  It filters `vs` and returns a monad that yields a list of the values matching `pred?`. Generalises standard `filter` to monads."
+  (let [point (:point m)
+        bind  (:bind m)
+        reducing-fn (fn [acc v]
+                      (bind (pred? v)
+                            (fn [satisfies?]
+                              (bind acc
+                                    (fn [rs]
+                                      (if satisfies?
+                                        (point (conj rs v))
+                                        (point rs)))))))]
+    (reduce reducing-fn (point []) vs)))

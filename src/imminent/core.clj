@@ -223,3 +223,8 @@
   "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"
   [f vs]
   (m/map-m future-monad f vs))
+
+(defn filter-future
+  "`pred?` needs to return a Future that yields a boolean. Returns a Future which yields a future containing all Futures which match `pred?`"
+  [pred? vs]
+  (m/filter-m future-monad pred? vs))

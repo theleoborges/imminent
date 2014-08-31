@@ -12,7 +12,7 @@
 
 
 (defn dispatch
-  "Dispatches the given fuction to the current *executor*. If given a value, dispatches a function which when called applied `f` to `value`"
+  "Dispatches the given fuction to the current *executor*. If given a value, dispatches a function which when called applies `f` to `value`"
   ([f value] (dispatch #(f value)))
   ([f]
      (let [f (#'clojure.core/binding-conveyor-fn f)]
