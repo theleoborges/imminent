@@ -59,3 +59,7 @@
                                         (point (conj rs v))
                                         (point rs)))))))]
     (reduce reducing-fn (point []) vs)))
+
+(defn join-m [m mm]
+  (let [bind  (:bind m)]
+    (bind mm identity)))

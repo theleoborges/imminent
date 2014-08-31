@@ -5,7 +5,8 @@
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer (defspec)]))
+            [clojure.test.check.clojure-test :refer (defspec)])
+  (:import imminent.core.Future))
 
 (set! *warn-on-reflection* true)
 
@@ -80,7 +81,6 @@
 
 (defspec future-monad-laws-associativity-flatmap
   (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
-
 
 (def failed-future (core/failed-future (ex-info "error" {})))
 
@@ -230,6 +230,14 @@
 
       (is (= result [10 30])))))
 
+(deftest joining-futures
+  (testing "success"
+    (let [ff     (core/const-future (core/const-future 42))
+          f      (core/join ff)
+          result (-> f deref deref)]
+      (is (instance? imminent.core.Future f))
+      (is (= result 42)))))
+
 (deftest completion-handlers
   (testing "success"
     (let [result (atom nil)]
@@ -253,3 +261,29 @@
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))
+
+
+(deftest successful-semigroup
+  (testing "both successful"
+    (let [f1     (core/const-future 42)
+          f2     (core/const-future 84)
+          result (core/append (imminent.core.SuccessfulSemigroup. f1)
+                              (imminent.core.SuccessfulSemigroup. f2))]
+      (is (instance? imminent.core.SuccessfulSemigroup result))
+      (is (= (-> result :future deref deref) [42 84]))))
+
+  (testing "one successful"
+    (let [f1     (core/const-future 42)
+          f2     failed-future
+          result (core/append (imminent.core.SuccessfulSemigroup. f1)
+                              (imminent.core.SuccessfulSemigroup. f2))]
+      (is (instance? imminent.core.SuccessfulSemigroup result))
+      (is (= (-> result :future deref deref) [42]))))
+
+  (testing "sconcat"
+    (let [xs     [(core/const-future 42) failed-future (core/const-future 84)]
+          result (->> xs
+                      (map core/->SuccessfulSemigroup)
+                      core/sconcat)]
+      (is (instance? imminent.core.SuccessfulSemigroup result))
+      (is (= (-> result :future deref deref) [42 84])))))
