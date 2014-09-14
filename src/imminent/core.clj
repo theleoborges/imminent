@@ -3,7 +3,6 @@
   (:require [clojure.core :as clj]
             imminent.protocols
             [imminent.util.monad :as m]
-            [imminent.util.monoid :as monoid]
             [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]])
   (:import clojure.lang.IDeref
@@ -26,10 +25,6 @@
   Bind
   bind flatmap]
 
- [imminent.util.monoid
-  Semigroup
-  append
-  sconcat])
 
 (defrecord Success [v]
   IDeref
@@ -236,27 +231,3 @@
   (m/filter-m future-monad pred? vs))
 
 (def join (partial m/join-m future-monad))
-
-;; Semigroup
-
-;;
-;; Useful for combining several futures when you care only about successes
-;; e.g.: (->> xs (clj/map ->SuccessfulSemigroup) sconcat)
-
-(defrecord SuccessfulSemigroup [future]
-    Semigroup
-    (append   [this other]
-      (let [pred? (fn [f]
-                    (let [p (promise)]
-                      (on-complete f (fn [result]
-                                       (complete p (-> result
-                                                       success?
-                                                       success))))
-                      (->future p)))
-            op (comp flatten vector)]
-        (as-> [future (:future other)] x
-              (filter-future pred? x)
-              (map x sequence)
-              (join x)
-              (map x op)
-              (SuccessfulSemigroup. x)))))

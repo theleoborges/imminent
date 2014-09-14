@@ -261,29 +261,3 @@
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.core.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))
-
-
-(deftest successful-semigroup
-  (testing "both successful"
-    (let [f1     (core/const-future 42)
-          f2     (core/const-future 84)
-          result (core/append (imminent.core.SuccessfulSemigroup. f1)
-                              (imminent.core.SuccessfulSemigroup. f2))]
-      (is (instance? imminent.core.SuccessfulSemigroup result))
-      (is (= (-> result :future deref deref) [42 84]))))
-
-  (testing "one successful"
-    (let [f1     (core/const-future 42)
-          f2     failed-future
-          result (core/append (imminent.core.SuccessfulSemigroup. f1)
-                              (imminent.core.SuccessfulSemigroup. f2))]
-      (is (instance? imminent.core.SuccessfulSemigroup result))
-      (is (= (-> result :future deref deref) [42]))))
-
-  (testing "sconcat"
-    (let [xs     [(core/const-future 42) failed-future (core/const-future 84)]
-          result (->> xs
-                      (map core/->SuccessfulSemigroup)
-                      core/sconcat)]
-      (is (instance? imminent.core.SuccessfulSemigroup result))
-      (is (= (-> result :future deref deref) [42 84])))))
