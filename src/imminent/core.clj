@@ -252,10 +252,11 @@
                                        (complete p (-> result
                                                        success?
                                                        success))))
-                      (->future p)))]
+                      (->future p)))
+            op (comp flatten vector)]
         (as-> [future (:future other)] x
               (filter-future pred? x)
               (map x sequence)
               (join x)
-              (map x #(flatten [%]))
+              (map x op)
               (SuccessfulSemigroup. x)))))
