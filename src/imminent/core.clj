@@ -4,7 +4,8 @@
             imminent.protocols
             [imminent.util.monad :as m]
             [imminent.executors  :as executors]
-            [imminent.util.namespaces :refer [import-vars]])
+            [imminent.util.namespaces :refer [import-vars]]
+            [uncomplicate.fluokitten.protocols :as fkp])
   (:import clojure.lang.IDeref
            [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
 
@@ -19,12 +20,12 @@
   IAwaitable
   await]
 
- [imminent.util.monad
+ [uncomplicate.fluokitten.protocols
   Functor
-  map
-  Bind
-  bind flatmap]
-
+  fmap
+  Monad
+  bind
+  ])
 
 (defrecord Success [v]
   IDeref
@@ -34,9 +35,12 @@
   (failure?    [this] false)
   (map-failure [this _]
     this)
+
   Functor
-  (map       [this f]
-    (Success. (f v))))
+  (fmap [fv g]
+    (Success. (g v)))
+  (fmap [fv g fvs]
+    (Success. (apply g v (clj/map deref fvs)))))
 
 (defrecord Failure [e]
   IDeref
@@ -47,8 +51,10 @@
   (map-failure [this f]
     (Failure. (f e)))
   Functor
-  (map       [this _]
-    this))
+  (fmap [fv _]
+    fv)
+  (fmap [fv g _]
+    fv))
 
 (prefer-method print-method clojure.lang.IRecord clojure.lang.IDeref)
 
@@ -61,6 +67,7 @@
 (declare promise)
 (declare from-try)
 (declare failed-future)
+
 (defmacro try-future
   "Wraps body in a try/catch. If an exception is thrown, returns a Future which yields a Failure containg the exception."
   [& body]
@@ -76,7 +83,7 @@
 
   IFuture
   (on-success   [this f]
-    (on-complete this (comp deref #(map % f))))
+    (on-complete this (comp deref #(fmap % f))))
 
   (on-failure     [this f]
     (on-complete this (comp deref #(map-failure % f))))
@@ -88,7 +95,7 @@
         (executors/dispatch f st))))
 
   (filter [this pred?]
-    (map this (fn [a]
+    (fmap this (fn [a]
                 (if (pred? a)
                   a
                   (throw (java.util.NoSuchElementException. "Failed predicate"))))))
@@ -108,22 +115,22 @@
         this)))
 
   Functor
-  (map [this f]
-    (bind this (fn [a]
-                 (from-try #(f a)))))
+  (fmap [fv g]
+    (bind fv (fn [a]
+                 (from-try #(g a)))))
+  (fmap [fv g fvs]
+    (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
 
-  Bind
-  (bind [ma fmb]
+  Monad
+  (bind [mv g]
     (let [p (promise)]
-      (on-complete ma (fn [a]
+      (on-complete mv (fn [a]
                         (if (success? a)
-                          (on-complete (try-future (fmb (deref a)))
+                          (on-complete (try-future (g (deref a)))
                                        (fn [b]
                                          (complete p b)))
                           (complete p a))))
       (->future p)))
-
-  (flatmap [ma fmb] (bind ma fmb))
 
   Object
   (equals   [this other] (and (instance? Future other)
@@ -131,6 +138,8 @@
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
 
+
+(def flatmap bind)
 
 (deftype Promise [state listeners future]
   IDeref
@@ -218,7 +227,7 @@
   "Returns a Future containing a list of the results yielded by all futures in `ms` further reduced using `f` and `seed`. See `sequence` and `map`"
   [f seed ms]
   (-> (sequence ms)
-      (map #(clj/reduce f seed %))))
+      (fmap #(clj/reduce f seed %))))
 
 (defn map-future
   "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"

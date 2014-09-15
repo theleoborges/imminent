@@ -22,13 +22,13 @@
 
 (defn functor-laws-identity [generator]
   (prop/for-all [functor generator]
-                (= (core/map functor identity)
+                (= (core/fmap functor identity)
                    (identity functor))))
 
 (defn functor-laws-associativity [generator]
   (prop/for-all [functor generator]
-                (= (core/map functor (comp count str))
-                   (core/map (core/map functor str)
+                (= (core/fmap functor (comp count str))
+                   (core/fmap (core/fmap functor str)
                              count))))
 
 (defn monad-laws-left-identity [pure bind generator]
@@ -88,7 +88,7 @@
 (deftest mapping
   (testing "success"
     (let [result (-> (core/const-future 10)
-                     (core/map #(* % %))
+                     (core/fmap #(* % %))
                      deref)]
 
       (is (instance? imminent.core.Success result))
@@ -98,7 +98,7 @@
   (testing "failure"
     (testing "failed future"
       (let [result (-> failed-future
-                       (core/map #(* % %))
+                       (core/fmap #(* % %))
                        deref)]
         (is (instance? imminent.core.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))
@@ -153,7 +153,7 @@
   (testing "core functions don't blow up"
     (let [future (core/const-future 10)]
       (are [x y ] (instance? x @y)
-           imminent.core.Failure (core/map future bad-fn)
+           imminent.core.Failure (core/fmap future bad-fn)
            imminent.core.Failure (core/filter future bad-fn)
            imminent.core.Failure (core/bind future bad-fn)
            imminent.core.Failure (core/sequence [failed-future])))))
