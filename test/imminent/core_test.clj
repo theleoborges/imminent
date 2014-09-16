@@ -12,7 +12,7 @@
 
 (def success-gen (gen/fmap core/success (gen/not-empty gen/string-alpha-numeric)))
 (def failure-gen (gen/fmap core/failure (gen/not-empty gen/string-alpha-numeric)))
-(def future-gen  (gen/fmap core/const-future (gen/not-empty gen/string-alpha-numeric)))
+(def future-gen  (gen/fmap (partial core/pure (Future. nil nil)) (gen/not-empty gen/string-alpha-numeric)))
 
 (defn setup [f]
   (binding [executors/*executor* executors/blocking-executor]

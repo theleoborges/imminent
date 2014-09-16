@@ -23,8 +23,12 @@
  [uncomplicate.fluokitten.protocols
   Functor
   fmap
+
+  Applicative
+  pure fapply
+
   Monad
-  bind
+  bind join
   ])
 
 (defrecord Success [v]
@@ -121,16 +125,21 @@
   (fmap [fv g fvs]
     (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
 
-  Monad
-  (bind [mv g]
+  Applicative
+  (pure [_ v]
     (let [p (promise)]
-      (on-complete mv (fn [a]
-                        (if (success? a)
-                          (on-complete (try-future (g (deref a)))
-                                       (fn [b]
-                                         (complete p b)))
-                          (complete p a))))
+      (complete p (Success. v))
       (->future p)))
+
+  (fapply [ag av]
+    (bind ag
+          (fn [f]
+            (bind av
+                  (fn [v]
+                    (pure ag (f v)))))))
+
+  (fapply [ag av avs]
+    (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
 
   Object
   (equals   [this other] (and (instance? Future other)
@@ -138,6 +147,37 @@
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
 
+
+
+(defn const-future
+  "Creates a new future and immediately completes it successfully with `v`"
+  [v]
+  (let [p (promise)]
+    (complete p (Success. v))
+    (->future p)))
+
+(def future-monad-impls
+  {:bind (fn [mv g]
+           (let [p (promise)]
+             (on-complete mv (fn [a]
+                               (if (success? a)
+                                 (on-complete (try-future (g (deref a)))
+                                              (fn [b]
+                                                (complete p b)))
+                                 (complete p a))))
+             (->future p)))})
+
+(def future-monad
+  {:point const-future
+   :bind  (:bind future-monad-impls)})
+
+(def monad-default-impls
+  {:join (partial m/join-m future-monad)})
+
+(extend imminent.core.Future
+  Monad
+  (merge monad-default-impls
+         future-monad-impls))
 
 (def flatmap bind)
 
@@ -198,13 +238,6 @@
     (complete p (try* f))
     (->future p)))
 
-(defn const-future
-  "Creates a new future and immediately completes it successfully with `v`"
-  [v]
-  (let [p (promise)]
-    (complete p (Success. v))
-    (->future p)))
-
 (defn failed-future [e]
   "Creates a new future and immediately completes it with the Failure `e`"
   (let [p (promise)]
@@ -214,10 +247,6 @@
 ;;
 ;; Future monad instance and convenience derived functions
 ;;
-
-(def future-monad
-  {:point const-future
-   :bind  bind})
 
 (def sequence
   "Given a list of futures, returns a future that will eventually contain a list of the results yielded by all futures. If any future fails, returns a Future representing that failure"
@@ -238,5 +267,3 @@
   "`pred?` needs to return a Future that yields a boolean. Returns a Future which yields a future containing all Futures which match `pred?`"
   [pred? vs]
   (m/filter-m future-monad pred? vs))
-
-(def join (partial m/join-m future-monad))
