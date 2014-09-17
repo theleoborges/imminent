@@ -132,11 +132,8 @@
       (->future p)))
 
   (fapply [ag av]
-    (bind ag
-          (fn [f]
-            (bind av
-                  (fn [v]
-                    (pure ag (f v)))))))
+    ((m/lift2-m {} #(% %1))
+     ag av))
 
   (fapply [ag av avs]
     (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
