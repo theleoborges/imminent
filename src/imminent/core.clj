@@ -5,7 +5,8 @@
             [imminent.util.monad :as m]
             [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]]
-            [uncomplicate.fluokitten.protocols :as fkp])
+            [uncomplicate.fluokitten.protocols :as fkp]
+            [uncomplicate.fluokitten.core :as fkc])
   (:import clojure.lang.IDeref
            [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
 
@@ -30,6 +31,30 @@
   Monad
   bind join
   ])
+
+
+;;
+;; Convenience aliases of monadic combinators
+;;
+
+(def sequence
+  "Given a list of futures, returns a future that will eventually contain a list of the results yielded by all futures. If any future fails, returns a Future representing that failure"
+  m/msequence)
+
+(defn reduce
+  "Returns a Future containing a list of the results yielded by all futures in `ms` further reduced using `f` and `seed`. See `sequence` and `map`"
+  [f seed ms]
+  (-> (sequence ms)
+      (fmap #(clj/reduce f seed %))))
+
+(def map-future
+  "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"
+  m/mmap)
+
+(def filter-future
+  "`pred?` needs to return a Future that yields a boolean. Returns a Future which yields a future containing all Futures which match `pred?`"
+  m/mfilter)
+
 
 (defrecord Success [v]
   IDeref
@@ -132,11 +157,14 @@
       (->future p)))
 
   (fapply [ag av]
-    ((m/lift2-m {} #(% %1))
+    ((m/mlift2 #(% %2))
      ag av))
 
   (fapply [ag av avs]
-    (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
+    ((m/mlift2 #(apply % %2))
+     ag (sequence (cons av avs))))
+
+
 
   Object
   (equals   [this other] (and (instance? Future other)
@@ -154,22 +182,22 @@
     (->future p)))
 
 (def future-monad-impls
-  {:bind (fn [mv g]
-           (let [p (promise)]
-             (on-complete mv (fn [a]
-                               (if (success? a)
-                                 (on-complete (try-future (g (deref a)))
-                                              (fn [b]
-                                                (complete p b)))
-                                 (complete p a))))
-             (->future p)))})
-
-(def future-monad
-  {:point const-future
-   :bind  (:bind future-monad-impls)})
+  {:bind (fn bind ([mv g]
+                    (let [p (promise)]
+                      (on-complete mv (fn [a]
+                                        (if (success? a)
+                                          (on-complete (try-future (g (deref a)))
+                                                       (fn [b]
+                                                         (complete p b)))
+                                          (complete p a))))
+                      (->future p)))
+           ([mv g mvs]
+              (fkc/mdo [v  mv
+                        vs (sequence mvs)]
+                       (fkc/return (apply g v vs)))))})
 
 (def monad-default-impls
-  {:join (partial m/join-m future-monad)})
+  {:join m/mjoin})
 
 (extend imminent.core.Future
   Monad
@@ -240,27 +268,3 @@
   (let [p (promise)]
     (complete p (Failure. e))
     (->future p)))
-
-;;
-;; Future monad instance and convenience derived functions
-;;
-
-(def sequence
-  "Given a list of futures, returns a future that will eventually contain a list of the results yielded by all futures. If any future fails, returns a Future representing that failure"
-  (partial m/sequence-m future-monad))
-
-(defn reduce
-  "Returns a Future containing a list of the results yielded by all futures in `ms` further reduced using `f` and `seed`. See `sequence` and `map`"
-  [f seed ms]
-  (-> (sequence ms)
-      (fmap #(clj/reduce f seed %))))
-
-(defn map-future
-  "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"
-  [f vs]
-  (m/map-m future-monad f vs))
-
-(defn filter-future
-  "`pred?` needs to return a Future that yields a boolean. Returns a Future which yields a future containing all Futures which match `pred?`"
-  [pred? vs]
-  (m/filter-m future-monad pred? vs))

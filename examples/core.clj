@@ -120,7 +120,7 @@
                             (prn-to-repl "id " (.getId (Thread/currentThread)))
                             (prn-to-repl "the name i have is " *myvalue*)))
           conveyed (clojure.core/map #'clojure.core/binding-conveyor-fn tasks)
-          fs (clojure.core/map future conveyed)]
+          fs (clojure.core/map future-call conveyed)]
       (prn-to-repl "doing...")
       (await (sequence fs))
       (prn-to-repl "done")))
