@@ -37,12 +37,12 @@
        msequence))
 
 (defn mfilter [pred? vs]
-  "`m` is a monad
+  "`ctx` is the monadic context. It is needed as we can't infer it
   `pred?` is a function that receives a `v` from `vs` and returns a monad that yields a boolean
   `vs` is a list of values
 
   It filters `vs` and returns a monad that yields a list of the values matching `pred?`. Generalises standard `filter` to monads."
-  (let [ctx (first vs)
+  (let [ctx (pred? (first vs)) ; TODO: Prevent pred? from being called (+ (length vs) 1) times
         reducing-fn (fn [acc v]
                       (mdo [satisfies? (pred? v)
                             rs         acc]

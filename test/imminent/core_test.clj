@@ -212,23 +212,11 @@
 
 (deftest filtering-futures
   (testing "success"
-    (let [pred?      (fn [f]
-                       (let [p (core/promise)]
-                         (core/on-complete f (fn [result]
-                                               (core/complete p (-> result
-                                                                    core/success?
-                                                                    core/success))))
-                         (core/->future p)))
-          successful-futures (-> (core/filter-future pred? [(core/const-future 10)
-                                                            failed-future
-                                                            (core/const-future 30)])
-                                 deref ;; unwraps the future
-                                 deref ;; unwraps IResult
-                                 core/sequence ;; sequences the list of successful futures
-                                 )
-          result (-> successful-futures deref deref)]
+    (let [pred?      (comp core/const-future even?)
+          result (-> (core/filter-future pred? [10 2 3 4 7])
+                     deref)]
 
-      (is (= result [10 30])))))
+      (is (= @result [10 2 4])))))
 
 (deftest joining-futures
   (testing "success"
