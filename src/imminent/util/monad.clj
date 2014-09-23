@@ -1,8 +1,6 @@
 (ns imminent.util.monad
-  (:refer-clojure :exclude [map])
-  (require [clojure.core :as clj]
-           [uncomplicate.fluokitten.utils :refer [with-context]]
-           [uncomplicate.fluokitten.core :as fkc :refer [bind pure mdo return fmap]]))
+  (:require [uncomplicate.fluokitten.utils :refer [with-context]]
+            [uncomplicate.fluokitten.core :as fkc :refer [bind pure mdo return fmap]]))
 
 ;;
 ;; Derived functions
@@ -33,7 +31,7 @@
 
 (defn mmap [f vs]
   "Given a monad `m`, a function `f` and a list of values `vs`, it maps `f` over `vs` finally sequencing all resulting monads. See `msequence`"
-  (->> (clj/map f vs)
+  (->> (map f vs)
        msequence))
 
 (defn mfilter [pred? vs]
