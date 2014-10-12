@@ -1,9 +1,10 @@
-(ns imminent.util.namespaces)
+(ns imminent.util.namespaces
+  "Shamelessly stolen from ztellman's excellent library Potemkin
+  https://raw.githubusercontent.com/ztellman/potemkin/5eb267826131c8cb861d5defbcc87e5d084823d7/src/potemkin/namespaces.clj
 
-;; Shamelessly stolen from ztellman's excellent library Potemkin
-;; https://raw.githubusercontent.com/ztellman/potemkin/5eb267826131c8cb861d5defbcc87e5d084823d7/src/potemkin/namespaces.clj
+  https://github.com/ztellman/potemkin")
 
-;; https://github.com/ztellman/potemkin
+
 
 
 (defn link-vars

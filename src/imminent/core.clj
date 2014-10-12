@@ -1,4 +1,6 @@
 (ns imminent.core
+  "Convenience namespace. Require this instead of the individual namespaces to prevent
+  large namespace declarations. Its use is entirely optional."
   (:refer-clojure :exclude [map filter future future-call promise sequence reduce await])
   (:require imminent.protocols
             imminent.future
@@ -49,5 +51,4 @@
   pure fapply
 
   Monad
-  bind join
-  ])
+  bind join])
