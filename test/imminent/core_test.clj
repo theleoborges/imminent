@@ -1,8 +1,6 @@
 (ns imminent.core-test
   (:require [clojure.test :refer :all]
-            [imminent.future    :as f]
-            [imminent.protocols :as p]
-            [imminent.result    :as r]
+            [imminent.core    :as core]
             [uncomplicate.fluokitten.protocols :as fkp]
             [imminent.executors :as executors]
             [clojure.test.check :as tc]
@@ -12,9 +10,9 @@
 
 (set! *warn-on-reflection* true)
 
-(def success-gen (gen/fmap r/success (gen/not-empty gen/string-alpha-numeric)))
-(def failure-gen (gen/fmap r/failure (gen/not-empty gen/string-alpha-numeric)))
-(def future-gen  (gen/fmap (partial fkp/pure (imminent.future.Future. nil nil)) (gen/not-empty gen/string-alpha-numeric)))
+(def success-gen (gen/fmap core/success (gen/not-empty gen/string-alpha-numeric)))
+(def failure-gen (gen/fmap core/failure (gen/not-empty gen/string-alpha-numeric)))
+(def future-gen  (gen/fmap (partial core/pure (imminent.future.Future. nil nil)) (gen/not-empty gen/string-alpha-numeric)))
 
 (defn setup [f]
   (binding [executors/*executor* executors/blocking-executor]
@@ -24,13 +22,13 @@
 
 (defn functor-laws-identity [generator]
   (prop/for-all [functor generator]
-                (= (fkp/fmap functor identity)
+                (= (core/fmap functor identity)
                    (identity functor))))
 
 (defn functor-laws-associativity [generator]
   (prop/for-all [functor generator]
-                (= (fkp/fmap functor (comp count str))
-                   (fkp/fmap (fkp/fmap functor str)
+                (= (core/fmap functor (comp count str))
+                   (core/fmap (core/fmap functor str)
                              count))))
 
 (defn monad-laws-left-identity [pure bind generator]
@@ -67,30 +65,30 @@
   (functor-laws-associativity future-gen))
 
 (defspec future-monad-laws-left-identity
-  (monad-laws-left-identity f/const-future fkp/bind (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-left-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-right-identity
-  (monad-laws-right-identity f/const-future fkp/bind (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-associativity
-  (monad-laws-right-identity f/const-future fkp/bind (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/bind (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-left-identity-flatmap
-  (monad-laws-left-identity f/const-future f/flatmap (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-left-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-right-identity-flatmap
-  (monad-laws-right-identity f/const-future f/flatmap (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
 
 (defspec future-monad-laws-associativity-flatmap
-  (monad-laws-right-identity f/const-future f/flatmap (gen/not-empty gen/string-alpha-numeric)))
+  (monad-laws-right-identity core/const-future core/flatmap (gen/not-empty gen/string-alpha-numeric)))
 
-(def failed-future (f/failed-future (ex-info "error" {})))
+(def failed-future (core/failed-future (ex-info "error" {})))
 
 
 (deftest mapping
   (testing "success"
-    (let [result (-> (f/const-future 10)
-                     (fkp/fmap #(* % %))
+    (let [result (-> (core/const-future 10)
+                     (core/fmap #(* % %))
                      deref)]
 
       (is (instance? imminent.result.Success result))
@@ -100,7 +98,7 @@
   (testing "failure"
     (testing "failed future"
       (let [result (-> failed-future
-                       (fkp/fmap #(* % %))
+                       (core/fmap #(* % %))
                        deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))
@@ -108,8 +106,8 @@
 
 (deftest filtering
   (testing "success"
-    (let [result (-> (f/const-future 10)
-                     (p/filter even?)
+    (let [result (-> (core/const-future 10)
+                     (core/filter even?)
                      deref)]
 
       (is (instance? imminent.result.Success result))
@@ -118,15 +116,15 @@
 
   (testing "failure"
     (testing "failed predicate"
-      (let [result (-> (f/const-future 10)
-                       (p/filter odd?)
+      (let [result (-> (core/const-future 10)
+                       (core/filter odd?)
                        deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? java.util.NoSuchElementException (deref result)))))
 
     (testing "failed future"
       (let [result (-> failed-future
-                       (p/filter odd?)
+                       (core/filter odd?)
                        deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))
@@ -136,15 +134,15 @@
 
 (deftest flatmapping
   (testing "success"
-    (let [result (-> (f/const-future 10)
-                     (fkp/bind (fn [n] (f/const-future (* n n))))
+    (let [result (-> (core/const-future 10)
+                     (core/bind (fn [n] (core/const-future (* n n))))
                      deref)]
       (is (instance? imminent.result.Success result))
       (is (= (deref result) 100))))
 
   (testing "failed future"
     (let [result (-> failed-future
-                     (fkp/bind (fn [n] (f/const-future (* n n))))
+                     (core/bind (fn [n] (core/const-future (* n n))))
                      deref)]
       (is (instance? imminent.result.Failure result))
       (is (instance? clojure.lang.ExceptionInfo (deref result))))))
@@ -153,18 +151,18 @@
 
 (deftest exception-handling
   (testing "core functions don't blow up"
-    (let [future (f/const-future 10)]
+    (let [future (core/const-future 10)]
       (are [x y ] (instance? x @y)
-           imminent.result.Failure (fkp/fmap future bad-fn)
-           imminent.result.Failure (p/filter future bad-fn)
-           imminent.result.Failure (fkp/bind future bad-fn)
-           imminent.result.Failure (f/sequence [failed-future])))))
+           imminent.result.Failure (core/fmap future bad-fn)
+           imminent.result.Failure (core/filter future bad-fn)
+           imminent.result.Failure (core/bind future bad-fn)
+           imminent.result.Failure (core/sequence [failed-future])))))
 
 
 (deftest sequencing
   (testing "success"
-    (let [result (-> [(f/const-future 10) (f/const-future 20) (f/const-future 30)]
-                     (f/sequence)
+    (let [result (-> [(core/const-future 10) (core/const-future 20) (core/const-future 30)]
+                     (core/sequence)
                      deref)]
 
       (is (instance? imminent.result.Success result))
@@ -172,16 +170,16 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [result (-> [failed-future (f/const-future 10) failed-future]
-                       (f/sequence)
+      (let [result (-> [failed-future (core/const-future 10) failed-future]
+                       (core/sequence)
                        deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 (deftest reducing
   (testing "success"
-    (let [result (->> [(f/const-future 10) (f/const-future 20) (f/const-future 30)]
-                      (f/reduce + 0)
+    (let [result (->> [(core/const-future 10) (core/const-future 20) (core/const-future 30)]
+                      (core/reduce + 0)
                       deref)]
 
       (is (instance? imminent.result.Success result))
@@ -189,16 +187,16 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [result (->> [(f/const-future 10) failed-future]
-                        (f/reduce + 0)
+      (let [result (->> [(core/const-future 10) failed-future]
+                        (core/reduce + 0)
                         deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 (deftest mapping-futures
   (testing "success"
-    (let [f      #(f/future (* % %))
-          result (-> (f/map-future f [1 2 3])
+    (let [f      #(core/future (* % %))
+          result (-> (core/map-future f [1 2 3])
                      deref)]
 
       (is (instance? imminent.result.Success result))
@@ -206,24 +204,24 @@
 
   (testing "failure"
     (testing "failed future"
-      (let [f      #(f/future (bad-fn %))
-            result (-> (f/map-future f [1 2 3])
+      (let [f      #(core/future (bad-fn %))
+            result (-> (core/map-future f [1 2 3])
                        deref)]
         (is (instance? imminent.result.Failure result))
         (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 (deftest filtering-futures
   (testing "success"
-    (let [pred?      (comp f/const-future even?)
-          result (-> (f/filter-future pred? [10 2 3 4 7])
+    (let [pred?      (comp core/const-future even?)
+          result (-> (core/filter-future pred? [10 2 3 4 7])
                      deref)]
 
       (is (= @result [10 2 4])))))
 
 (deftest joining-futures
   (testing "success"
-    (let [ff     (f/const-future (f/const-future 42))
-          f      (fkp/join ff)
+    (let [ff     (core/const-future (core/const-future 42))
+          f      (core/join ff)
           result (-> f deref deref)]
       (is (instance? imminent.future.Future f))
       (is (= result 42)))))
@@ -231,23 +229,23 @@
 (deftest completion-handlers
   (testing "success"
     (let [result (atom nil)]
-      (-> (f/const-future 10) (p/on-success #(reset! result %)))
+      (-> (core/const-future 10) (core/on-success #(reset! result %)))
       (is (= @result 10))))
 
   (testing "failure"
     (let [result (atom nil)]
-      (-> failed-future (p/on-failure #(reset! result %)))
+      (-> failed-future (core/on-failure #(reset! result %)))
       (is (instance? clojure.lang.ExceptionInfo @result))))
 
   (testing "completion"
     (testing "success"
       (let [result (atom nil)]
-        (-> (f/const-future "success") (p/on-complete #(reset! result %)))
+        (-> (core/const-future "success") (core/on-complete #(reset! result %)))
         (is (instance? imminent.result.Success @result))
         (is (= (deref @result) "success"))))
 
     (testing "failure"
       (let [result (atom nil)]
-        (-> failed-future (p/on-complete #(reset! result %)))
+        (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.result.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))

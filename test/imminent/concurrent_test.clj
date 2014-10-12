@@ -1,8 +1,6 @@
 (ns imminent.concurrent-test
-  (:require [clojure.test :refer :all]
-            [imminent.future    :as f]
-            [imminent.protocols :as p]
-            [imminent.result    :as r]
+  (:require [imminent.core :as core]
+            [clojure.test :refer :all]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
@@ -17,7 +15,7 @@
 ;; These tests make heavy use of core/await, which blocks on the future making testing async
 ;; code simpler
 
-(def failed-future (f/failed-future (ex-info "error" {})))
+(def failed-future (core/failed-future (ex-info "error" {})))
 
 (defn fact-seq []
   (iterate (fn [[prev fact]]
@@ -33,10 +31,10 @@
 
 (deftest parallel-factorial
   (let [ns [10 20 30]
-        fs (map (comp f/future-call #(partial slow-fact %))
+        fs (map (comp core/future-call #(partial slow-fact %))
                 ns)
-        result (-> (f/sequence fs)
-                   p/await
+        result (-> (core/sequence fs)
+                   core/await
                    deref)]
     (is (= [3628800
             2432902008176640000
@@ -46,15 +44,15 @@
 
 (deftest await-timeout
   (testing "success"
-    (let [result (-> (f/future-call (fn [] 42))
-                     (p/await 1000)
+    (let [result (-> (core/future-call (fn [] 42))
+                     (core/await 1000)
                      deref)]
       (is (instance? imminent.result.Success result))
       (is (=  42 @result))))
 
   (testing "timeout"
-    (let [never-ending-future (p/->future (f/promise))
-          result @(p/await never-ending-future 10)]
+    (let [never-ending-future (core/->future (core/promise))
+          result @(core/await never-ending-future 10)]
       (is (instance? imminent.result.Failure result))
       (is (instance? java.util.concurrent.TimeoutException (deref result))))))
 
@@ -62,9 +60,9 @@
 (deftest thread-bindings
   (binding [*myvalue* 42]
     (let [result (->> (repeat 3 (fn [] *myvalue*))
-                      (map f/future-call)
-                      (f/reduce + 0)
-                      p/await
+                      (map core/future-call)
+                      (core/reduce + 0)
+                      core/await
                       deref
                       deref)]
       (is (= result
