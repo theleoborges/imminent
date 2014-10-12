@@ -36,6 +36,7 @@
   future
   promise
   flatmap
+  map
   map-future
   try-future
   failed-future

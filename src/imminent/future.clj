@@ -193,6 +193,7 @@
 
 
 (def flatmap fkp/bind)
+(def map     fkp/fmap)
 
 (defn promise
   "Creates a new, unresolved promise."
