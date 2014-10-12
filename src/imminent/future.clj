@@ -66,6 +66,13 @@
     (complete p (failure e))
     (->future p)))
 
+(defn const-future
+  "Creates a new future and immediately completes it successfully with `v`"
+  [v]
+  (let [p (promise)]
+    (complete p (success v))
+    (->future p)))
+
 (defn future-call
   "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`"
   [task]
@@ -174,6 +181,9 @@
     (fkc/mdo [v  mv
               vs (sequence mvs)]
              (fkc/return (apply g v vs))))
+
+  (join [mm]
+    (m/mjoin mm))
 
   Object
   (equals   [this other] (and (instance? Future other)

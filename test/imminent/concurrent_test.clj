@@ -3,7 +3,6 @@
             [imminent.future    :as f]
             [imminent.protocols :as p]
             [imminent.result    :as r]
-            [imminent.executors :as executors]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
