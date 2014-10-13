@@ -184,11 +184,13 @@
 ;;
 
 
-(def future-monad-ctx (const-future ::default-monad-ctx))
+(def m-ctx
+  "A simple, 'empty' future instance that can be used as a monad context to combinators that require one."
+  (const-future ::default-monad-ctx))
 
 (def sequence
   "Given a list of futures, returns a future that will eventually contain a list of the results yielded by all futures. If any future fails, returns a Future representing that failure"
-  (partial m/msequence future-monad-ctx))
+  (partial m/msequence m-ctx))
 
 (defn reduce
   "Returns a Future containing a list of the results yielded by all futures in `ms` further reduced using `f` and `seed`. See `sequence` and `map`"
@@ -198,8 +200,8 @@
 
 (def map-future
   "`f` needs to return a future. Maps `f` over `vs` and sequences all resulting futures. See `sequence`"
-  (partial m/mmap future-monad-ctx))
+  (partial m/mmap m-ctx))
 
 (def filter-future
   "`pred?` needs to return a Future that yields a boolean. Returns a Future which yields a future containing all Futures which match `pred?`"
-  (partial m/mfilter future-monad-ctx))
+  (partial m/mfilter m-ctx))

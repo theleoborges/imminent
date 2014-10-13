@@ -40,7 +40,8 @@
   failed-future
   filter-future
   sequence
-  const-future]
+  const-future
+  m-ctx]
 
  [uncomplicate.fluokitten.protocols
   Functor

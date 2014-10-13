@@ -17,6 +17,7 @@ Composable futures for Clojure
 * [Combinators](#combinators)	
 * [Event handlers](#event-handlers)	
 * [Awaiting](#awaiting)
+* [The 'mdo' macro](#the-mdo-macro)
 * [Executors](#executors)	
 * [Usage](#usage)
 * [FAQ](#faq)
@@ -65,19 +66,17 @@ For the impatient, I've included a couple of examples below. I've chosen to tran
 ;; Original examples: https://gist.github.com/benjchristensen/4671081#file-futuresb-java-L13
 ;;
 
-
 (defn example-1 []
-  (let [f1     (immi/future (remote-service-a))
-        f2     (immi/future (remote-service-b))
-        f3     (-> f1 (immi/map #(remote-service-c %)))
-        f4     (-> f2 (immi/map #(remote-service-d %)))
-        f5     (-> f2 (immi/map #(remote-service-e %)))
+  (let [f1     (remote-service-a)
+        f2     (remote-service-b)
+        f3     (immi/flatmap f1 remote-service-c)
+        f4     (immi/flatmap f2 remote-service-d)
+        f5     (immi/flatmap f2 remote-service-e)
         result (immi/sequence [f3 f4 f5])]
     (immi/on-success result
                      (fn [[r3 r4 r5]]
                        (prn (format "%s => %s" r3 (* r4 r5)))))))
                        
-
 ;;
 ;; Example 4 & 5 are handled by the approach below
 ;; Original examples: https://gist.github.com/benjchristensen/4671081#file-futuresb-java-L106
@@ -102,7 +101,7 @@ For the impatient, I've included a couple of examples below. I've chosen to tran
       (immi/on-success f do-more-work))))
 ```
 
-Both examples above are non-blcoking and use combinators to operate over single futures or a sequence of futures. The runnable examples can be found under `examples/netflix.clj`
+Both examples above are **non-blocking** and use combinators to operate over single futures or a sequence of futures. The runnable examples can be found under `examples/netflix.clj`
 
 
 I highly recommend you keep reading for the full list :)
@@ -225,49 +224,6 @@ Monadic bind. Note how in the example below, we bind to a future a function that
   ;; #<Future@2385558: #imminent.core.Success{:v 100}>
 ```  
 
-
-However this becomes inconvenient when we have futures where the output of one is the input of another. To demonstrate, suppose we have very expensive functions that double, square and create the range of a number:
-
-```clojure
-  (defn f-double [n]
-    ;; expensive computation here...
-    (immi/const-future (* n 2)))
-  (defn f-square [n]
-    ;; expensive computation here...
-    (immi/const-future (* n n)))
-  (defn f-range [n]
-    ;; expensive computation here...
-    (immi/const-future (range n)))
-```
-
-Using `flatmap/bind` the code would look like this:
-
-```clojure
-(immi/flatmap (immi/const-future 1)
-                (fn [m]
-                  (immi/flatmap (f-double m)
-                                (fn [n]
-                                  (immi/flatmap (f-square n)
-                                                f-range)))))
-
-;; #<Future@42f92dbc: #<Success@7529b3fd: (0 1 2 3)>>
-```
-
-This is usually not the code you want to write. There is another way, using the `mdo` macro provided by [fluokitten](https://github.com/uncomplicate/fluokitten):
-
-```clojure
-(immi/mdo [a (immi/const-future 1)
-           b (f-double a)
-           o (f-square b)]
-         (f-range o))
-         
-;; #<Future@76150f6f: #<Success@60a87cf9: (0 1 2 3)>>
-```
-
-Both snippets are semantically equivalent but the latter is more convenient as it allows us to write sequencial-looking code that is, in fact, asynchronous.
-
-> Imminent uses [fluokitten](https://github.com/uncomplicate/fluokitten) to provide its main abstractions such as Monads, Applicatives and Functors. Any Monad can take advantage of the `mdo` macro.
-
 ### sequence
 
 Given a list of futures, returns a future that will eventually contain a list of all results:
@@ -359,7 +315,73 @@ You can optionally provide a timeout - highly recommended - after which an Excep
               500) ;; waits for 500 ms at most
   ;; #<Future@7d27f6c3: #imminent.core.Failure{:e #<TimeoutException java.util.concurrent.TimeoutException: Timeout waiting future>}>
 ```
+## The *mdo* macro
 
+Imminent uses [fluokitten](https://github.com/uncomplicate/fluokitten) to provide its main abstractions such as Monads, Applicatives and Functors. Any Monad can take advantage of the `mdo` macro.
+
+Writing code using `bind/flatmap` can be inconvenient when we have futures where the output of one is the input of another. To demonstrate, suppose we have very expensive functions that double, square and create the range of a number:
+
+```clojure
+  (defn f-double [n]
+    ;; expensive computation here...
+    (immi/const-future (* n 2)))
+  (defn f-square [n]
+    ;; expensive computation here...
+    (immi/const-future (* n n)))
+  (defn f-range [n]
+    ;; expensive computation here...
+    (immi/const-future (range n)))
+```
+
+Using `flatmap` the code would look like this:
+
+```clojure
+(immi/flatmap (immi/const-future 1)
+                (fn [m]
+                  (immi/flatmap (f-double m)
+                                (fn [n]
+                                  (immi/flatmap (f-square n)
+                                                f-range)))))
+
+;; #<Future@42f92dbc: #<Success@7529b3fd: (0 1 2 3)>>
+```
+
+This is usually not the code you would want to write. There is another - better - way using the `mdo` macro provided by [fluokitten](https://github.com/uncomplicate/fluokitten):
+
+```clojure
+(immi/mdo [a (immi/const-future 1)
+           b (f-double a)
+           o (f-square b)]
+         (f-range o))
+         
+;; #<Future@76150f6f: #<Success@60a87cf9: (0 1 2 3)>>
+```
+
+Both snippets are semantically equivalent but the latter is more convenient as it allows us to write sequential-looking code that is, in fact, asynchronous.
+
+As another example, we can rewrite the `example-1` function from the beginning of this guide like so:
+
+```clojure
+(defn example-1 []
+  (let [result (immi/mdo [f1  (remote-service-a)
+                          f2  (remote-service-b)
+                          f3  (remote-service-c f1)
+                          f4  (remote-service-d f2)
+                          f5  (remote-service-e f2)]
+                         (immi/const-future [f3 f4 f5]))]
+    (immi/on-success result
+                     (fn [[r3 r4 r5]]
+                       (prn (format "%s => %s" r3 (* r4 r5)))))))
+
+```
+
+Once again we get sequential-looking code without explicitly calling `bind/flatmap`. You might have noticed that the in the example above, the last thing we do is to call `immi/const-future`. There is a reason for that.
+
+The result of the `mdo` macro has to be a Future - strictly speaking, a Monad - and since `f-range` returns a Future, we don't need to do anything else.
+
+Differently - in `example-1` - we are interested in the result `[f3 f4 f5]` but since that is simply a Clojure vector we need a way to put that vector inside a Future. 
+
+Therefore we call `immi/const-future` which we learned about in the section on creating Futures.
 
 ## Executors
 
