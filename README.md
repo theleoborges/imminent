@@ -225,6 +225,49 @@ Monadic bind. Note how in the example below, we bind to a future a function that
   ;; #<Future@2385558: #imminent.core.Success{:v 100}>
 ```  
 
+
+However this becomes inconvenient when we have futures where the output of one is the input of another. To demonstrate, suppose we have very expensive functions that double, square and create the range of a number:
+
+```clojure
+  (defn f-double [n]
+    ;; expensive computation here...
+    (immi/const-future (* n 2)))
+  (defn f-square [n]
+    ;; expensive computation here...
+    (immi/const-future (* n n)))
+  (defn f-range [n]
+    ;; expensive computation here...
+    (immi/const-future (range n)))
+```
+
+Using `flatmap/bind` the code would look like this:
+
+```clojure
+(immi/flatmap (immi/const-future 1)
+                (fn [m]
+                  (immi/flatmap (f-double m)
+                                (fn [n]
+                                  (immi/flatmap (f-square n)
+                                                f-range)))))
+
+;; #<Future@42f92dbc: #<Success@7529b3fd: (0 1 2 3)>>
+```
+
+This is usually not the code you want to write. There is another way, using the `mdo` macro provided by [fluokitten](https://github.com/uncomplicate/fluokitten):
+
+```clojure
+(immi/mdo [a (immi/const-future 1)
+           b (f-double a)
+           o (f-square b)]
+         (f-range o))
+         
+;; #<Future@76150f6f: #<Success@60a87cf9: (0 1 2 3)>>
+```
+
+Both snippets are semantically equivalent but the latter is more convenient as it allows us to write sequencial-looking code that is, in fact, asynchronous.
+
+> Imminent uses [fluokitten](https://github.com/uncomplicate/fluokitten) to provide its main abstractions such as Monads, Applicatives and Functors. Any Monad can take advantage of the `mdo` macro.
+
 ### sequence
 
 Given a list of futures, returns a future that will eventually contain a list of all results:
@@ -308,7 +351,7 @@ Futures implement the `IAwaitable` protocol for the scenario where you truly nee
   ;; #<Future@485bceb6: #imminent.core.Success{:v 30}>
 ```
 
-You can optionally provide a timeout, after which an Exception is thrown if the Future hasn't completed yet:
+You can optionally provide a timeout - highly recommended - after which an Exception is thrown if the Future hasn't completed yet:
 
 ```clojure
   (immi/await (immi/future-call (fn []
@@ -373,7 +416,7 @@ Feedback on both this library and this guide is welcome.
 
 ### Running the tests
 
-Imminent has been developed and tested using Clojure 1.6. It should however work with Clojure 1.5 as well.
+Imminent has been developed and tested using Clojure 1.6.
 
 To run the tests:
 

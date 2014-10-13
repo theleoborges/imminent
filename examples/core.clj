@@ -8,7 +8,7 @@
     (apply prn args)))
 
 (comment
-  (def ma (const-future 10))
+  (def  ma (const-future 10))
   (defn fmb [n]
     (const-future (* 2 n)))
   (bind ma fmb)
@@ -181,7 +181,33 @@
       (immi/flatmap (fn [n] (immi/const-future (* n n)))))
   ;; #<Future@2385558: #imminent.core.Success{:v 100}>
 
+  (defn f-double [n]
+    ;; expensive computation here...
+    (immi/const-future (* n 2)))
+  (defn f-square [n]
+    ;; expensive computation here...
+    (immi/const-future (* n n)))
+  (defn f-range [n]
+    ;; expensive computation here...
+    (immi/const-future (range n)))
 
+  (prefer-method print-method clojure.lang.IDeref clojure.lang.IRecord)
+  (def x (immi/flatmap (immi/const-future 1)
+                (fn [m]
+                  (immi/flatmap (f-double m)
+                                (fn [n]
+                                  (immi/flatmap (f-square n)
+                                                f-range))))))
+  x ;; #<Future@42f92dbc: #<Success@7529b3fd: (0 1 2 3)>>
+
+
+  (def x (immi/mdo [a (immi/const-future 1)
+                    b (f-double a)
+                    o (f-square b)]
+                   (f-range o)))
+
+
+  x ;; #<Future@76150f6f: #<Success@60a87cf9: (0 1 2 3)>>
 
   (-> [(immi/const-future 10) (immi/const-future 20) (immi/const-future 30)]
       immi/sequence)
