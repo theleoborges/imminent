@@ -35,8 +35,6 @@
   from-try
   future
   promise
-  flatmap
-  map
   map-future
   try-future
   failed-future
@@ -52,4 +50,10 @@
   pure fapply
 
   Monad
-  bind join])
+  bind join]
+
+ [uncomplicate.fluokitten.core
+  mdo])
+
+(def flatmap fkp/bind)
+(def map     fkp/fmap)
