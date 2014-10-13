@@ -15,33 +15,34 @@
          (pure ma (f a b)))))
 
 (defn msequence
-  "Given a monad `m` and a list of monads `ms`, it returns a single monad containing a list of
+  "`ctx` is the monadic context.
+  Given a monad `m` and a list of monads `ms`, it returns a single monad containing a list of
   the values yielded by all monads in `ms`"
-  [ms]
+  [ctx ms]
   (reduce (mlift2 conj)
-          (pure (first ms) [])
+          (pure ctx [])
           ms))
 
 (defn mlift
-  "Lifts a n-ary function `f` into a monadic context"
-  [f]
+  "`ctx` is the monadic context.
+  Lifts a n-ary function `f` into a monadic context"
+  [ctx f]
   (fn [& ms]
-    (fmap (msequence ms)
+    (fmap (msequence ctx ms)
           #(apply f %))))
 
-(defn mmap [f vs]
-  "Given a monad `m`, a function `f` and a list of values `vs`, it maps `f` over `vs` finally sequencing all resulting monads. See `msequence`"
-  (->> (map f vs)
-       msequence))
+(defn mmap [ctx f vs]
+  "`ctx` is the monadic context.
+  Given a monad `m`, a function `f` and a list of values `vs`, it maps `f` over `vs` finally sequencing all resulting monads. See `msequence`"
+  (msequence ctx (map f vs)))
 
-(defn mfilter [pred? vs]
-  "`ctx` is the monadic context. It is needed as we can't infer it
+(defn mfilter [ctx pred? vs]
+  "`ctx` is the monadic context.
   `pred?` is a function that receives a `v` from `vs` and returns a monad that yields a boolean
   `vs` is a list of values
 
   It filters `vs` and returns a monad that yields a list of the values matching `pred?`. Generalises standard `filter` to monads."
-  (let [ctx (pred? (first vs)) ; TODO: Prevent pred? from being called (+ (length vs) 1) times
-        reducing-fn (fn [acc v]
+  (let [reducing-fn (fn [acc v]
                       (mdo [satisfies? (pred? v)
                             rs         acc]
                            (if satisfies?
