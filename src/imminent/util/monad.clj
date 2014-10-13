@@ -31,17 +31,19 @@
     (fmap (msequence ctx ms)
           #(apply f %))))
 
-(defn mmap [ctx f vs]
+(defn mmap
   "`ctx` is the monadic context.
   Given a monad `m`, a function `f` and a list of values `vs`, it maps `f` over `vs` finally sequencing all resulting monads. See `msequence`"
+  [ctx f vs]
   (msequence ctx (map f vs)))
 
-(defn mfilter [ctx pred? vs]
+(defn mfilter
   "`ctx` is the monadic context.
   `pred?` is a function that receives a `v` from `vs` and returns a monad that yields a boolean
   `vs` is a list of values
 
   It filters `vs` and returns a monad that yields a list of the values matching `pred?`. Generalises standard `filter` to monads."
+  [ctx pred? vs]
   (let [reducing-fn (fn [acc v]
                       (mdo [satisfies? (pred? v)
                             rs         acc]
@@ -50,5 +52,7 @@
                              (pure  ctx rs))))]
     (reduce reducing-fn (pure ctx []) vs)))
 
-(defn mjoin [mm]
+(defn mjoin
+  "Takes a nested monad `mm` and removes one monadic level by carrying out the outer context, returning its inner monad"
+  [mm]
   (bind mm identity))
