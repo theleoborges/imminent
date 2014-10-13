@@ -5,13 +5,9 @@
   (:require imminent.protocols
             imminent.future
             imminent.result
-            [imminent.util.monad :as m]
-            [imminent.executors  :as executors]
             [imminent.util.namespaces :refer [import-vars]]
             [uncomplicate.fluokitten.protocols :as fkp]
-            [uncomplicate.fluokitten.core :as fkc])
-  (:import clojure.lang.IDeref
-           [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
+            uncomplicate.fluokitten.core))
 
 (import-vars
  [imminent.protocols
