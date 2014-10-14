@@ -254,6 +254,14 @@
   (-> (immi/const-future 42)
       (immi/on-complete prn))
 
+  (-> (immi/const-future 42)
+      (immi/on-complete #(match [%]
+                                [{Success v}] (prn "success: " v)
+                                [{Failure e}] (prn "failure: " e))))
+
+  ;; "success:  " 42
+
+
   ;; #imminent.core.Success{:v 42}
 
   (-> (immi/const-future 42)

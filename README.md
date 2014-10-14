@@ -16,6 +16,7 @@ Composable futures for Clojure
 * [Creating futures](#creating-futures)		
 * [Combinators](#combinators)	
 * [Event handlers](#event-handlers)	
+    * [Pattern matching](#pattern-matching) 
 * [Awaiting](#awaiting)
 * [The 'mdo' macro](#the-mdo-macro)
 * [Executors](#executors)	
@@ -259,17 +260,6 @@ Maps a future returning function over the given list and sequences the resulting
 
 You can register functions to be called once a future has been completed.
 
-### on-complete
-
-Calls the given function with the future's result type:
-
-```clojure
-  (-> (immi/const-future 42)
-      (immi/on-complete prn))
-
-  ;; #imminent.core.Success{:v 42}
-```
-
 ### on-success
 
 If successful, calls the supplied function with the value wrapped in the `IResult` type, `Success`.
@@ -291,6 +281,30 @@ If failed, calls the supplied function with the value wrapped in the `IResult` t
 
   ;; "Error"
 ```  
+
+### on-complete
+
+Calls the given function with the future's result type:
+
+```clojure
+  (-> (immi/const-future 42)
+      (immi/on-complete prn))
+
+  ;; #imminent.core.Success{:v 42}
+```
+
+### Pattern matching
+
+Imminent provides a limited form of pattern matching thanks to [core.match](https://github.com/clojure/core.match). This means you can easily handle both success and failure cases in the `on-complete` handler:
+
+```clojure
+(-> (immi/const-future 42)
+    (immi/on-complete #(match [%]
+                              [{Success v}] (prn "success: " v)
+                              [{Failure e}] (prn "failure: " e))))
+
+;; "success:  " 42
+```
 
 ## Awaiting
 
