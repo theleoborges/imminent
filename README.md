@@ -408,17 +408,17 @@ Short answer: semantics.
 
 The longer version:
 
-[core.async](https://github.com/clojure/core.async) channels offer a fine grained coordination mechanism and uses lightweight threads which can be parked, thus optimizing thread's idle time. 
+[core.async](https://github.com/clojure/core.async) channels offer a fine grained coordination mechanism and uses lightweight threads which can be parked, thus optimising thread's idle time. 
 
-This makes it powerful but unsuited for [blocking]IO heavy applications. In such scenarios its lightweight thread's parking mechanism isn't much help as the thread remains blocked waiting on the blocking IO operation. This renders the thread's otherwise idle time unusable.
+For problems which are non-blocking in nature and need a queue-like mechanism to communicate between workers, it is a great abstraction.
 
-Additionally, channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need pub/sub. 
+It does however mean developers need to learn about channels and their behaviour. Channels are *single take* containers so if you need to share the result of a computation with more than one consumer you need to use core.async's pub/sub features. 
 
 core.async will also swallow exceptions by default and this is in contrast with what imminent provides as you can see in the [Exception Handling](#exception-handling) section.
 
 ### Why not use reactive frameworks?
 
-Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It can be overkill for one-off parallel computations.
+Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It can be overkill for one-off parallel computations - i.e.: a stream that emits a single value and then terminates.
 
 Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a mix of the 3 approaches.
 
