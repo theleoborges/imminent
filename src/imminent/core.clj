@@ -14,7 +14,7 @@
   IReturn
   success? failure? map-failure
   IFuture
-  on-success on-failure on-complete filter
+  on-success on-failure on-complete filter completed?
   IPromise
   complete ->future
   IAwaitable

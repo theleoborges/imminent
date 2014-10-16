@@ -15,7 +15,11 @@
   (on-complete  [fut f]
     "applies f to a value of type 'IResult' once this future completes")
   (filter       [fut pred]
-    "Applies pred to the value of this Future. The new Future will contain a value of type success if (pre value) is true. It will contain a Failure wrapping a NoSuchElementException otherwise"))
+    "Applies pred to the value of this Future. The new Future will contain a value of type success if (pre value) is true. It will contain a Failure wrapping a NoSuchElementException otherwise")
+  (completed?   [fut]
+    "Returns true when this future has been completed with a value or an exception. False otherwise"))
+
+
 
 (defprotocol IAwaitable
   (await
@@ -23,5 +27,5 @@
     [awaitable ms] "Blocks until the awaitable reference is done. Optionally awaits for up to 'ms' milliseconds, throwing a TimeoutException once time is up."))
 
 (defprotocol IPromise
-  (complete [promise value] "Completes this promise with the given value")
-  (->future [promise]       "Returns a Future backed by this promise"))
+  (complete   [promise value] "Completes this promise with the given value")
+  (->future   [promise]       "Returns a Future backed by this promise"))

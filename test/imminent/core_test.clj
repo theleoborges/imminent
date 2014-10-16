@@ -127,9 +127,7 @@
                        (core/filter odd?)
                        deref)]
         (is (instance? imminent.result.Failure result))
-        (is (instance? clojure.lang.ExceptionInfo (deref result)))))
-
-    ))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
 
 
 (deftest flatmapping
@@ -153,9 +151,9 @@
   (testing "core functions don't blow up"
     (let [future (core/const-future 10)]
       (are [x y ] (instance? x @y)
-           imminent.result.Failure (core/fmap future bad-fn)
-           imminent.result.Failure (core/filter future bad-fn)
-           imminent.result.Failure (core/bind future bad-fn)
+           imminent.result.Failure (core/fmap     future bad-fn)
+           imminent.result.Failure (core/filter   future bad-fn)
+           imminent.result.Failure (core/bind     future bad-fn)
            imminent.result.Failure (core/sequence [failed-future])))))
 
 
@@ -225,6 +223,11 @@
           result (-> f deref deref)]
       (is (instance? imminent.future.Future f))
       (is (= result 42)))))
+
+(deftest completion
+  (are [x y] (= x y)
+       false (core/completed? (core/->future (core/promise)))
+       true  (core/completed? (core/const-future "Done."))))
 
 (deftest completion-handlers
   (testing "success"

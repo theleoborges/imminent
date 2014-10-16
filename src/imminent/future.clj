@@ -112,6 +112,9 @@
                        a
                        (throw (java.util.NoSuchElementException. "Failed predicate"))))))
 
+  (completed? [_]
+    (not= ::unresolved @state))
+
   IAwaitable
   (await [this]
     (let [latch (CountDownLatch. 1)]
