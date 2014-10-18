@@ -399,7 +399,7 @@ Therefore we call `immi/const-future` which we learned about in the section on c
 
 ## Executors
 
-The whole point of futures is being able to perform parallel tasks. By default, the `future` constructor uses an unbounded thread pool for doing work - this might change in upcoming releases. 
+The whole point of futures is being able to perform parallel tasks. By default imminent uses Java's [ForkJoinPool](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html) with parallelism set to the number of available processors.
 
 The user has fine grained control over this by using the `executors/*executor*` dynamic var. It includes a `blocking-executor` which blocks on any given task, making it useful for testing:
 
