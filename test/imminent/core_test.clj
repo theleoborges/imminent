@@ -193,10 +193,10 @@
       (let [result (atom nil)]
         (-> (core/const-future "success") (core/on-complete #(reset! result %)))
         (is (instance? imminent.result.Success @result))
-        (is (= (deref @result) "success"))))
+        (is (= (core/dderef result) "success"))))
 
     (testing "failure"
       (let [result (atom nil)]
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.result.Failure @result))
-        (is (instance? clojure.lang.ExceptionInfo (deref @result)))))))
+        (is (instance? clojure.lang.ExceptionInfo (core/dderef result)))))))

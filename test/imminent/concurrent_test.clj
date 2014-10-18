@@ -31,11 +31,11 @@
                 ns)
         result (-> (core/sequence fs)
                    core/await
-                   deref)]
+                   core/dderef)]
     (is (= [3628800
             2432902008176640000
             265252859812191058636308480000000N]
-           @result))))
+           result))))
 
 
 (deftest await-timeout

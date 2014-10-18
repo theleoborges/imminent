@@ -54,3 +54,7 @@
 
 (def flatmap fkp/bind)
 (def map     fkp/fmap)
+
+(def dderef
+  "Same as (deref (deref x))"
+  (comp deref deref))
