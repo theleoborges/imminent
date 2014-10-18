@@ -45,14 +45,6 @@
                  #(binding [*executor* executor]
                     (f))))))
 
-;; (defn dispatch
-;;   "Dispatches the given fuction to the current *executor*. If given a value, dispatches a function which when called applies `f` to `value`"
-;;   ([f value] (dispatch #(f value)))
-;;   ([f]
-;;      (let [f (#'clojure.core/binding-conveyor-fn f)]
-;;        (.execute ^java.util.concurrent.ForkJoinPool *executor*
-;;                  (forkjoin-task f)))))
-
 (defn dispatch-all
   "Dispatches all functions in `fs` to the current *executor* and value `value`"
   [fs value]
