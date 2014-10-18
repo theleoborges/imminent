@@ -89,6 +89,23 @@
            imminent.result.Failure (core/sequence [failed-future])))))
 
 
+(deftest zipping
+  (testing "success"
+    (let [f1     (core/const-future 10)
+          f2     (core/const-future 20)
+          result @(core/zip f1 f2)]
+
+      (is (instance? imminent.result.Success result))
+      (is (= (deref result) [10 20]))))
+
+  (testing "failure"
+    (testing "failed future"
+      (let [f1     (core/const-future 10)
+            f2     failed-future
+            result @(core/zip f1 f2)]
+        (is (instance? imminent.result.Failure result))
+        (is (instance? clojure.lang.ExceptionInfo (deref result)))))))
+
 (deftest sequencing
   (testing "success"
     (let [result (-> [(core/const-future 10) (core/const-future 20) (core/const-future 30)]

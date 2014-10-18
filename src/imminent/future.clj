@@ -112,6 +112,11 @@
                        a
                        (throw (java.util.NoSuchElementException. "Failed predicate"))))))
 
+  (zip [this other]
+    (fkc/mdo [x this
+              y other]
+             (fkc/pure this [x y])))
+
   (completed? [_]
     (not= ::unresolved @state))
 

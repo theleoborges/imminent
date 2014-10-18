@@ -16,6 +16,8 @@
     "applies f to a value of type 'IResult' once this future completes")
   (filter       [fut pred]
     "Applies pred to the value of this Future. The new Future will contain a value of type success if (pre value) is true. It will contain a Failure wrapping a NoSuchElementException otherwise")
+  (zip          [fut other]
+    "Zips this future with 'other'. Resturns a new Future containing a two-element vector representing the result of each Future.")
   (completed?   [fut]
     "Returns true when this future has been completed with a value or an exception. False otherwise"))
 
