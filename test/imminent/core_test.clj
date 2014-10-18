@@ -145,7 +145,6 @@
     (let [pred?      (comp core/const-future even?)
           result (-> (core/filter-future pred? [10 2 3 4 7])
                      deref)]
-
       (is (= @result [10 2 4])))))
 
 (deftest joining-futures
