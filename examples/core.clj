@@ -273,4 +273,56 @@
       (immi/on-failure prn))
 
   ;; "Error"
+
+  (def plus (immi/curry + 4))
+
+  (defn int-future [n]
+    (immi/future (do (Thread/sleep 2000)
+                     n)))
+
+
+  (time
+   (-> (immi/bind
+        (int-future 10)
+        (fn [a] (immi/bind
+                (int-future 20)
+                (fn [b] (immi/bind
+                        (int-future 30)
+                        (fn [c] (immi/bind
+                                (int-future 40)
+                                (fn [d] (immi/pure immi/m-ctx (+ a b c d))))))))))
+       immi/await
+       immi/dderef))
+
+
+  (time
+   (-> (immi/mdo [a (int-future 10)
+                  b (int-future 20)
+                  c (int-future 30)
+                  d (int-future 40)]
+                 (immi/pure immi/m-ctx  (+ a b c d)))
+       immi/await
+       immi/dderef))
+  ;; "Elapsed time: 8003.241 msecs"
+  (->)
+  (-> range
+      )
+  (time
+   (-> (immi/<*> (immi/map (int-future 10) plus)
+                 (int-future 20)
+                 (int-future 30)
+                 (int-future 40))
+       (immi/await 10000)
+       immi/dderef))
+  ;;"Elapsed time: 2001.509 msecs"
+
+  (time
+   (-> (immi/sequence [(int-future 10) (int-future 20) (int-future 30) (int-future 40)])
+       (immi/map #(apply + %))
+       (immi/await 10000)
+       immi/dderef))
+
+
+
+
   )

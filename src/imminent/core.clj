@@ -7,7 +7,8 @@
             imminent.result
             [imminent.util.namespaces :refer [import-vars]]
             [uncomplicate.fluokitten.protocols :as fkp]
-            uncomplicate.fluokitten.core))
+            uncomplicate.fluokitten.core
+            uncomplicate.fluokitten.jvm))
 
 (import-vars
  [imminent.protocols
@@ -50,7 +51,11 @@
   bind join]
 
  [uncomplicate.fluokitten.core
-  mdo])
+  <*>
+  mdo]
+
+ [uncomplicate.fluokitten.jvm
+  curry])
 
 (def flatmap fkp/bind)
 (def map     fkp/fmap)
