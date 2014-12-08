@@ -276,48 +276,52 @@
 
   (def plus (immi/curry + 4))
 
-  (defn int-future [n]
+  (defn int-f [n]
     (immi/future (do (Thread/sleep 2000)
                      n)))
 
 
   (time
    (-> (immi/bind
-        (int-future 10)
+        (int-f 10)
         (fn [a] (immi/bind
-                (int-future 20)
+                (int-f 20)
                 (fn [b] (immi/bind
-                        (int-future 30)
-                        (fn [c] (immi/bind
-                                (int-future 40)
-                                (fn [d] (immi/pure immi/m-ctx (+ a b c d))))))))))
+                        (int-f 30)
+                        (fn [c] (immi/pure immi/m-ctx (+ a b c))))))))
        immi/await
        immi/dderef))
-
+  ;; "Elapsed time: 6002.731 msecs"
 
   (time
-   (-> (immi/mdo [a (int-future 10)
-                  b (int-future 20)
-                  c (int-future 30)
-                  d (int-future 40)]
-                 (immi/pure immi/m-ctx  (+ a b c d)))
+   (-> (immi/mdo [a (int-f 10)
+                  b (int-f 20)
+                  c (int-f 30)]
+                 (immi/pure immi/m-ctx  (+ a b c)))
        immi/await
        immi/dderef))
-  ;; "Elapsed time: 8003.241 msecs"
-  (->)
-  (-> range
-      )
+  ;; "Elapsed time: 6002.39 msecs"
+
   (time
-   (-> (immi/<*> (immi/map (int-future 10) plus)
-                 (int-future 20)
-                 (int-future 30)
-                 (int-future 40))
+   (-> (immi/<*> (immi/map (int-f 10) plus)
+                 (int-f 20)
+                 (int-f 30))
        (immi/await 10000)
        immi/dderef))
   ;;"Elapsed time: 2001.509 msecs"
 
+  (require '[imminent.util.applicative :as ap] :reload)
+
+  (time (-> ((immi/alift +) (int-f 10) (int-f 20) (int-f 30))
+            (immi/await 10000)
+            immi/dderef))
+
+  ;; "Elapsed time: 2003.663 msecs"
+
+
+
   (time
-   (-> (immi/sequence [(int-future 10) (int-future 20) (int-future 30) (int-future 40)])
+   (-> (immi/sequence [(int-f 10) (int-f 20) (int-f 30) (int-f 40)])
        (immi/map #(apply + %))
        (immi/await 10000)
        immi/dderef))

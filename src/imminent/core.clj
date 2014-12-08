@@ -8,7 +8,8 @@
             [imminent.util.namespaces :refer [import-vars]]
             [uncomplicate.fluokitten.protocols :as fkp]
             uncomplicate.fluokitten.core
-            uncomplicate.fluokitten.jvm))
+            uncomplicate.fluokitten.jvm
+            imminent.util.applicative))
 
 (import-vars
  [imminent.protocols
@@ -39,6 +40,9 @@
   sequence
   const-future
   m-ctx]
+
+ [imminent.util.applicative
+  alift]
 
  [uncomplicate.fluokitten.protocols
   Functor
