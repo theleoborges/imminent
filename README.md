@@ -20,6 +20,7 @@ Composable futures for Clojure
 * [Awaiting](#awaiting)
 * [The 'mdo' macro](#the-mdo-macro)
 * [Executors](#executors)	
+    * [Blocking IO](#blocking-io)
 * [Usage](#usage)
 * [FAQ](#faq)
 	* [Why not use core.async?](#why-not-use-core-async)
@@ -413,6 +414,31 @@ The user has fine grained control over this by using the `executors/*executor*` 
   ;; #<Future@ac1c71d: #imminent.core.Success{:v 42}>
 ```
 
+### Blocking IO
+
+One of the advantages of using a ForkJoinPool is that one can have a large amount of futures in memory being served by a much smaller number of actual threads in the pool. 
+
+The ForkJoinPool is smart enough and tries to keep all threads active by dynamically expanding and shrinking the pool as required. However in order for it to do its job, all computations must be CPU-bound - i.e.: free of side effects.
+
+In the face of blocking IO the performance of the ForkJoinPool may be compromised.
+
+To prevent this, Imminent provides two constructs for creating futures which may block: the function `blocking-future-call` and the macro `blocking-future`, analogous to `future-call` and `future` respectively:
+
+```clojure
+  (->> (repeat 3 (fn []
+                   (Thread/sleep 1000)
+                   10))
+       ;; creates 3 "expensive" computations
+       (map immi/blocking-future-call)
+       ;; dispatches the computations in parallel,
+       ;; indicating they might block
+       (immi/reduce + 0))
+  ;; #<Future@1d4ed70: #<Success@34dda2f6: 30>>
+```
+
+They work in exactly the same way as their non-blocking counterparts but use ForkJoinPool-specific API to indicate the current thread may block, but the futures themselves remain asynchronous. 
+
+The pool then might choose to increase its number of threads to keep up with the desired level of parallelism.
 
 ## FAQ
 
@@ -430,9 +456,16 @@ It does however mean developers need to learn about channels and their behaviour
 
 core.async will also swallow exceptions by default and this is in contrast with what imminent provides as you can see in the [Exception Handling](#exception-handling) section.
 
+Additionally the thread pool backing up core.async is for CPU-bound computations only - given enough blocking computations, the pool might starve. As stated under [Blocking IO](#blocking-io), imminent mitigates this by using a ForkJoinPool.
+
 ### Why not use reactive frameworks?
 
-Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. It can be overkill for one-off parallel computations - i.e.: a stream that emits a single value and then terminates.
+Frameworks such as [RxJava](https://github.com/Netflix/RxJava) , [reagi](https://github.com/weavejester/reagi) and others are useful when you have data which is naturally modelled as signals. This includes things such as reading user keyboard input, mouse movement and pretty much anything which is time-dependant and generates a continuous flow of values. 
+
+To put it another way, they provide a way to model mutable state.
+
+It can be overkill for one-off parallel computations - i.e.: a stream that emits a single value and then terminates.
+
 
 Imminent provides the semantics needed for working with these one-off parallel computations as well as several combinators which can be used to combine and coordinate between them. A complex-enough project will likely benefit from a mix of the 3 approaches.
 

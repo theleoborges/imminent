@@ -326,7 +326,15 @@
        (immi/await 10000)
        immi/dderef))
 
-
+  (->> (repeat 3 (fn []
+                   (Thread/sleep 1000)
+                   10))
+       ;; creates 3 "expensive" computations
+       (map immi/blocking-future-call)
+       ;; dispatches the computations in parallel,
+       ;; indicating they might block
+       (immi/reduce + 0))
+  ;; #<Future@1d4ed70: #<Success@34dda2f6: 30>>
 
 
   )
@@ -364,17 +372,6 @@
   (def ex (java.util.concurrent.ForkJoinPool. 2))
   (defn factorial [n]
     (reduce *' (range 2 (inc n))))
-
-  (binding [executors/*executor* ex]
-    (time
-     (let [tasks [(immi/future (factorial 100000))
-                  (immi/future (factorial 100000))
-                  (immi/future (factorial 100000))]]
-       (-> tasks
-           immi/sequence
-           immi/await)
-       nil))) ; 11
-
 
   (binding [executors/*executor* ex]
     (time
