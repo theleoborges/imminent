@@ -157,8 +157,13 @@
 
   fkp/Functor
   (fmap [fv g]
-    (fkp/bind fv (fn [a]
-                 (from-try #(g a)))))
+    (let [p (promise)]
+      (on-complete fv (fn [a]
+                        (if (success? a)
+                          (complete p  (try* #(g @a)))
+                          (complete p a))))
+      (->future p)))
+
   (fmap [fv g fvs]
     (throw (java.lang.UnsupportedOperationException. "vararg fmap in Future")))
 
