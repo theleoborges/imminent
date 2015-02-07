@@ -1,5 +1,6 @@
 (ns imminent.executors
-  (:import [java.util.concurrent Executor ForkJoinPool ForkJoinTask]))
+  (:import [java.util.concurrent
+            Executor ForkJoinPool ForkJoinPool$ManagedBlocker ForkJoinTask]))
 
 
 (def default-executor (java.util.concurrent.ForkJoinPool.
@@ -50,3 +51,42 @@
   [fs value]
   (doseq [f fs]
     (dispatch f value)))
+
+
+(defn managed-blocker [f]
+  (let [done (atom false)]
+    (reify ForkJoinPool$ManagedBlocker
+      (block [this]
+        (try (f)
+             (finally
+               (reset! done true)))
+        true)
+      (isReleasable [this]
+        @done))))
+
+(defmulti dispatch-blocking
+  "Same as dispatch. Except that, in a ForkJoinTask, uses `ManagedBlocker` to tell the ForkJoinPool it might block. This allows the pool to make adjustments in order to ensure optimal thread liveness."
+  (fn
+    ([_ _]
+       (type *executor*))
+    ([_]
+       (type *executor*))))
+
+(defmethod dispatch-blocking ForkJoinPool
+  ([f value] (dispatch #(f value)))
+  ([f]
+
+     (let [executor *executor*
+           fj-task  (forkjoin-task
+                     executor (fn []
+                                (ForkJoinPool/managedBlock (managed-blocker f))))]
+       (if (ForkJoinTask/inForkJoinPool)
+         (.fork fj-task)
+         (.execute ^java.util.concurrent.ForkJoinPool executor
+                   fj-task)))))
+
+
+(defmethod dispatch-blocking :default
+  ([f value] (dispatch #(f value)))
+  ([f]
+     (dispatch f)))

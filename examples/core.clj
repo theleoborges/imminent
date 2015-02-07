@@ -330,3 +330,113 @@
 
 
   )
+
+
+(comment
+  ;; blocking futures
+
+
+
+
+  (def result (atom nil))
+
+  (dispatch-blocking (fn []
+                       (reset! result 178)))
+
+
+  (binding [*executor* blocking-executor]
+    (dispatch-blocking (fn []
+                         (reset! result 400))))
+
+  (def f1 )
+
+  (def f2 (immi/map f1 (fn [x]
+                         (prn-to-repl (.getId (Thread/currentThread)))
+                         (read-string x))))
+
+  (def f3 (immi/filter f2 (fn [x]
+                            (prn-to-repl (.getId (Thread/currentThread)))
+                            (even? x))))
+
+  (import '[java.util.concurrent
+            Executor ForkJoinPool ForkJoinPool$ManagedBlocker ForkJoinTask])
+
+  (def ex (java.util.concurrent.ForkJoinPool. 2))
+  (defn factorial [n]
+    (reduce *' (range 2 (inc n))))
+
+  (binding [executors/*executor* ex]
+    (time
+     (let [tasks [(immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))]]
+       (-> tasks
+           immi/sequence
+           immi/await)
+       nil))) ; 11
+
+
+  (binding [executors/*executor* ex]
+    (time
+     (let [tasks [(immi/future ;; doing some expensive IO
+                    (Thread/sleep 10000))
+                  (immi/future ;; doing some expensive IO
+                    (Thread/sleep 10000))
+                  (immi/future ;; doing some expensive IO
+                    (Thread/sleep 10000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  ]]
+       (-> tasks
+           immi/sequence
+           immi/await
+           )
+       nil)))
+
+
+  ;; ~ 20 secs
+  ;; ~ 27 secs
+
+  ;; parallelism - 2
+  ;; size        - 2
+
+
+  (binding [executors/*executor* ex]
+    (time
+     (let [tasks [(immi/blocking-future ;; doing some expensive IO
+                   (Thread/sleep 10000))
+                  (immi/blocking-future ;; doing some expensive IO
+                   (Thread/sleep 10000))
+                  (immi/blocking-future ;; doing some expensive IO
+                   (Thread/sleep 10000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  (immi/future (factorial 100000))
+                  ]]
+       (-> tasks
+           immi/sequence
+           immi/await)
+       nil)))
+
+  ;; ~ 10 secs
+  ;; ~ 15 secs
+
+  ;; parallelism - 2
+  ;; size        - 4
+
+
+
+
+  (time
+    (factorial 100000))
+
+  (dotimes [_ 5]
+    (time
+     (dotimes [_ 1]
+       (factorial 100000))))
+
+
+  )

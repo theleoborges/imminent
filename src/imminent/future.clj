@@ -8,7 +8,7 @@
             [uncomplicate.fluokitten.protocols :as fkp]
             [uncomplicate.fluokitten.core :as fkc])
   (:import clojure.lang.IDeref
-           [java.util.concurrent TimeUnit CountDownLatch TimeoutException]))
+           [java.util.concurrent TimeUnit TimeoutException Phaser]))
 
 
 ;;
@@ -54,16 +54,32 @@
     (->future p)))
 
 (defn future-call
-  "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`"
+  "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`.
+  `task` must be free of side effects."
   [task]
   (let [p (promise)]
     (executors/dispatch (fn [] (complete p (try* task))))
     (->future p)))
 
 (defmacro future
-  "Dispatches `body` on a separate thread and returns a future that will eventually contain the result. See `future-call`"
+  "Dispatches `body` on a separate thread and returns a future that will eventually contain the result. `body` must be free of side effects.
+  See `future-call`"
   [& body]
   `(future-call (fn [] ~@body)))
+
+(defn blocking-future-call
+  "Dispatches `task` on a separate thread and returns a future that will eventually contain the result of `task`.
+  `task` may block."
+  [task]
+  (let [p (promise)]
+    (executors/dispatch-blocking (fn [] (complete p (try* task))))
+    (->future p)))
+
+(defmacro blocking-future
+  "Dispatches `body` on a separate thread and returns a future that will eventually contain the result. `body` may block.
+  See `future-call`"
+  [& body]
+  `(blocking-future-call (fn [] ~@body)))
 
 (deftype Promise [state listeners future]
   IDeref
@@ -86,7 +102,6 @@
                               (= @this @other)))
   (hashCode [this] (hash @this))
   (toString [this] (pr-str @this)))
-
 
 (deftype Future [state listeners]
   IDeref
@@ -122,17 +137,23 @@
 
   IAwaitable
   (await [this]
-    (let [latch (CountDownLatch. 1)]
-      (on-complete this (fn [_] (.countDown latch)))
-      (.await latch)
+    (let [phaser (Phaser. 1)]
+      (on-complete this (fn [_]
+                          (.arriveAndDeregister phaser)))
+      (.awaitAdvance phaser 0)
       this))
 
   (await [this ms]
-    (let [latch (CountDownLatch. 1)]
-      (on-complete this (fn [_] (.countDown latch)))
-      (if-not (.await latch ms TimeUnit/MILLISECONDS)
-        (failed-future (TimeoutException. "Timeout waiting future"))
-        this)))
+    (let [phaser (Phaser. 1)]
+      (on-complete this (fn [_]
+                          (.arriveAndDeregister phaser)))
+      (try
+        (.awaitAdvanceInterruptibly phaser 0 ms TimeUnit/MILLISECONDS)
+        this
+        (catch TimeoutException e
+          (failed-future (TimeoutException. "Timeout waiting future")))
+        (catch Exception e
+          (failed-future e)))))
 
   fkp/Functor
   (fmap [fv g]

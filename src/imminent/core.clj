@@ -30,8 +30,10 @@
   reduce
   try*
   future-call
-  from-try
+  blocking-future-call
   future
+  blocking-future
+  from-try
   promise
   map-future
   try-future

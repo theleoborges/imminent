@@ -26,25 +26,28 @@
       second))
 
 (deftest parallel-factorial
-  (let [ns [10 20 30]
-        fs (map (comp core/future-call #(partial slow-fact %))
-                ns)
-        result (-> (core/sequence fs)
-                   core/await
-                   core/dderef)]
-    (is (= [3628800
-            2432902008176640000
-            265252859812191058636308480000000N]
-           result))))
+  (doseq [fn-under-test [core/future-call core/blocking-future-call]]
+    (let [ns [10 20 30]
+          fs (map (comp fn-under-test #(partial slow-fact %))
+                  ns)
+          result (-> (core/sequence fs)
+                     core/await
+                     core/dderef)]
+      (is (= [3628800
+              2432902008176640000
+              265252859812191058636308480000000N]
+             result)))))
 
 
 (deftest await-timeout
-  (testing "success"
-    (let [result (-> (core/future-call (fn [] 42))
-                     (core/await 1000)
-                     deref)]
-      (is (instance? imminent.result.Success result))
-      (is (=  42 @result))))
+  (doseq [fn-under-test [core/future-call core/blocking-future-call]]
+    (testing "success"
+      (let [result (-> (fn-under-test (fn []
+                                        42))
+                       (core/await 10000)
+                       deref)]
+        (is (instance? imminent.result.Success result))
+        (is (=  42 @result)))))
 
   (testing "timeout"
     (let [never-ending-future (core/->future (core/promise))
