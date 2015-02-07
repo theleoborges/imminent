@@ -1,8 +1,12 @@
 (ns imminent.result
   (:require [imminent.protocols :refer [IReturn]]
+            [imminent.util.functor :refer [BiFunctor]]
             [uncomplicate.fluokitten.protocols :as fkp]
             clojure.core.match)
   (:import clojure.lang.IDeref))
+
+(declare success)
+(declare failure)
 
 (deftype Success [v]
   IDeref
@@ -18,6 +22,13 @@
     (Success. (g v)))
   (fmap [fv g fvs]
     (Success. (apply g v (map deref fvs))))
+
+  BiFunctor
+  (bimap [fv f g]
+    (try
+      (success (f v))
+      (catch Exception e
+        (failure e))))
 
   Object
   (equals   [this other] (and (instance? Success other)
@@ -38,6 +49,13 @@
     fv)
   (fmap [fv g _]
     fv)
+
+  BiFunctor
+  (bimap [fv f g]
+    (try
+      (failure (g e))
+      (catch Exception ex
+        (failure ex))))
 
   Object
   (equals   [this other] (and (instance? Failure other)

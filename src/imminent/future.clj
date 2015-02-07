@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [map filter future future-call promise sequence reduce await])
   (:require [clojure.core :as clj]
             [imminent.protocols :refer :all]
-            [imminent.util.monad :as m]
+            [imminent.util.monad   :as m]
+            [imminent.util.functor :as f]
             [imminent.executors  :as executors]
             [imminent.result  :refer [success failure]]
             [uncomplicate.fluokitten.protocols :as fkp]
@@ -158,10 +159,8 @@
   fkp/Functor
   (fmap [fv g]
     (let [p (promise)]
-      (on-complete fv (fn [a]
-                        (if (success? a)
-                          (complete p  (try* #(g @a)))
-                          (complete p a))))
+      (on-complete fv (fn [result]
+                        (complete p (f/bimap result g identity))))
       (->future p)))
 
   (fmap [fv g fvs]
