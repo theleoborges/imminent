@@ -1,5 +1,5 @@
 (defproject com.leonardoborges/imminent "0.1.0"
-  :description "FIXME: write description"
+  :description "A composable Futures library for Clojure"
   :url "https://github.com/leonardoborges/imminent"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
