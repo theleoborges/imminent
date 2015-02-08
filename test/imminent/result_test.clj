@@ -22,3 +22,7 @@
          "Error" (match [(failure "Error")]
                         [{Success v}] :shouldnt-get-here
                         [{Failure v}] v))))
+
+
+;; TODO: test bifunctor functions
+;; TODO: test existing functions for exceptions
