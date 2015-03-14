@@ -66,12 +66,12 @@
 
 
 (comment
-  (let [tasks [(const-future 10)
-               (const-future 20)
-               (const-future 30)]]
-    (-> (sequence tasks)
-        (map (fn [xs]
-               (prn-to-repl xs)))))
+  (let [tasks [(immi/const-future 10)
+               (immi/const-future 20)
+               (immi/const-future 30)]]
+    (-> (immi/sequence tasks)
+        (immi/map (fn [xs]
+                    (prn-to-repl xs)))))
   )
 
 (comment
@@ -398,7 +398,6 @@
 
   ;; parallelism - 2
   ;; size        - 2
-
 
   (binding [executors/*executor* ex]
     (time
