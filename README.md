@@ -485,7 +485,7 @@ Feedback on both this library and this guide is welcome.
 
 ### Running the tests
 
-Imminent has been developed and tested using Clojure 1.6.
+Imminent has been developed and tested using Clojure 1.6 (under both Java 7 and Java 8).
 
 To run the tests:
 
