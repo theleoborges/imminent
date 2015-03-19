@@ -230,7 +230,7 @@ Monadic bind. Note how in the example below, we bind to a future a function that
 
 Given a list of futures, returns a future that will eventually contain a list of all results:
 
-```
+```clojure
   (-> [(immi/const-future 10) (immi/const-future 20) (immi/const-future 30)]
       immi/sequence)
   ;; #<Future@32afbbca: #imminent.core.Success{:v [10 20 30]}>
