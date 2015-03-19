@@ -47,7 +47,7 @@ Imminent solves both problems. It is also heavily inspired by Scala's Futures an
 Add the following to your `project.clj`:
 
 
-[![Clojars Project](http://clojars.org/com.leonardoborges/imminent/latest-version.svg)]
+![Clojars Project](http://clojars.org/com.leonardoborges/imminent/latest-version.svg)
 
 
 Require the library:
