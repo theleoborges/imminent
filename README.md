@@ -21,7 +21,6 @@ Composable futures for Clojure
 * [The 'mdo' macro](#the-mdo-macro)
 * [Executors](#executors)	
     * [Blocking IO](#blocking-io)
-* [Usage](#usage)
 * [FAQ](#faq)
 	* [Why not use core.async?](#why-not-use-core-async)
 	* [Why not use reactive frameworks?](#why-not-use-core-async)	
