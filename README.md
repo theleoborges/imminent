@@ -7,7 +7,7 @@ Composable futures for Clojure
 * [API docs](http://leonardoborges.github.com/imminent/)
 * [Motivation](#motivation)
 * [Setup](#setup)
-* [TL;DR](#tl-dr)
+* [TL;DR](#tldr)
 * [Basic types](#basic-types)
 	* [Promise](#promise)
 	* [Future](#future)
