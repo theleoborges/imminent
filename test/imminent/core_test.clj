@@ -200,3 +200,19 @@
         (-> failed-future (core/on-complete #(reset! result %)))
         (is (instance? imminent.result.Failure @result))
         (is (instance? clojure.lang.ExceptionInfo (core/dderef result)))))))
+
+
+(deftest ambiguous
+  (testing "success"
+    (let [f     (core/amb (core/->future (core/promise))
+                          (core/const-future 42))
+          result (-> f deref deref)]
+      (is (instance? imminent.future.Future f))
+      (is (= result 42))))
+
+  (testing "failure"
+    (let [f      (core/amb (core/->future (core/promise))
+                           failed-future)
+          result (deref f)]
+      (is (instance? imminent.result.Failure result))
+      (is (instance? clojure.lang.ExceptionInfo (deref result))))))

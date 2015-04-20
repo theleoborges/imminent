@@ -35,6 +35,7 @@
   blocking-future
   from-try
   promise
+  amb
   map-future
   try-future
   failed-future

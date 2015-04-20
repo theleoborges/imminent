@@ -212,6 +212,16 @@
         future (Future. state listeners)]
     (Promise. state listeners future)))
 
+(defn amb
+  "The ambiguous function. Returns a future that will complete with the first Future in `fs`
+  to return a value."
+  [& fs]
+  (let [p (promise)]
+    (doseq [f fs]
+      (on-complete f (fn [v]
+                       (try (complete p v)))))
+    (->future p)))
+
 ;;
 ;; Convenience aliases of monadic combinators
 ;;
