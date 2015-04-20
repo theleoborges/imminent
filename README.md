@@ -237,8 +237,6 @@ It derives its name from Common Lisp and Scheme. In the context of Futures, it s
        (Thread/sleep ~ms)
        ~@body))
 
-  (macroexpand ')
-
 
   (-> (immi/amb (sleepy-future 100 10)
                 (sleepy-future 100 10)
