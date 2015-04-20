@@ -337,6 +337,39 @@
   ;; #<Future@1d4ed70: #<Success@34dda2f6: 30>>
 
 
+  ;; amb
+
+  (defmacro sleepy-future [ms & body]
+    `(immi/future
+       (Thread/sleep ~ms)
+       ~@body))
+
+  (macroexpand ')
+
+
+  (-> (immi/amb (sleepy-future 100 10)
+                (sleepy-future 100 10)
+                (sleepy-future 10  20)
+                (sleepy-future 100 10))
+      (immi/await 200)
+      deref)
+  ;; #object[imminent.result.Success 0x6e6bdd39 {:status :ready, :val 20}]
+
+  (-> (immi/amb (sleepy-future 100 10)
+                (sleepy-future 100 10)
+                (immi/failed-future (Exception.))
+                (sleepy-future 100 10))
+      (immi/await 200)
+      deref)
+
+  ;; #object[imminent.result.Failure 0x2139777b {... :val #error{:cause nil, :via [{:type java.lang.Exception, :message nil}] ... } ...}
+
+
+  (-> (immi/sequence [(int-f 10) (int-f 20) (int-f 30) (int-f 40)])
+       (immi/map #(apply + %))
+       (immi/await 10000)
+       immi/dderef)
+
   )
 
 

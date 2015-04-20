@@ -225,6 +225,40 @@ Monadic bind. Note how in the example below, we bind to a future a function that
   ;; #<Future@2385558: #imminent.core.Success{:v 100}>
 ```  
 
+### amb
+
+`amb` is the *ambiguous* function. 
+
+It derives its name from Common Lisp and Scheme. In the context of Futures, it simply means that, given a sequence of Futures, `amb` returns a Future that will complete with the result of the Future future in the given sequence to complete, regardless of whether it was successful:
+
+```clojure
+  (defmacro sleepy-future [ms & body]
+    `(immi/future
+       (Thread/sleep ~ms)
+       ~@body))
+
+  (macroexpand ')
+
+
+  (-> (immi/amb (sleepy-future 100 10)
+                (sleepy-future 100 10)
+                (sleepy-future 10  20)
+                (sleepy-future 100 10))
+      (immi/await 200)
+      immi/deref)
+  ;; #object[imminent.result.Success 0x6e6bdd39 {:status :ready, :val 20}]
+  
+  
+  ;; and with a failure:
+  (-> (immi/amb (sleepy-future 100 10)
+                (sleepy-future 100 10)
+                (immi/failed-future (Exception.))
+                (sleepy-future 100 10))
+      (immi/await 200)
+      deref)
+  ;; #object[imminent.result.Failure ...]
+```
+
 ### sequence
 
 Given a list of futures, returns a future that will eventually contain a list of all results:
