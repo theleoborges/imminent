@@ -229,7 +229,7 @@ Monadic bind. Note how in the example below, we bind to a future a function that
 
 `amb` is the *ambiguous* function. 
 
-It derives its name from Common Lisp and Scheme. In the context of Futures, it simply means that, given a sequence of Futures, `amb` returns a Future that will complete with the result of the Future future in the given sequence to complete, regardless of whether it was successful:
+It derives its name from Common Lisp and Scheme. In *imminent* it simply means that given a sequence of Futures, `amb` returns a Future that will complete with the result of the first Future to complete in the given sequence regardless of whether it was successful:
 
 ```clojure
   (defmacro sleepy-future [ms & body]
