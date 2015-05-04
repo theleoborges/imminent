@@ -1,6 +1,7 @@
 (require '[imminent.core :as immi]
          '[imminent.executors :as executors]
-         '[imminent.util.monad :as monad])
+         '[imminent.util.monad :as monad]
+         '[imminent.experimental :refer [async]])
 
 (def  repl-out *out*)
 (defn prn-to-repl [& args]
@@ -315,8 +316,48 @@
   (time (-> ((immi/alift +) (int-f 10) (int-f 20) (int-f 30))
             (immi/await 10000)
             immi/dderef))
-
   ;; "Elapsed time: 2003.663 msecs"
+
+
+  ;;
+  ;; Async await
+  ;;
+
+
+  (macroexpand '(async
+                 (let [x (async 10)]
+                   (+ (await (int-f 10))
+                      (await (int-f 20))
+                      (await (int-f 30))
+                      (await x)))))
+
+
+  (immi/await
+   (async
+    (+ (await (int-f 10))
+       (await (int-f 20))
+       (await (int-f 30))))
+   100000)
+
+
+  (immi/await
+   (immi/mdo [a (int-f 10)
+              b (int-f 20)
+              c (int-f 30)]
+             (immi/pure immi/m-ctx  (+ a b c)))
+   10000)
+
+  (immi/await
+   (async
+    (+ (await (int-f 10))
+       (await (int-f 20))
+       (await (int-f 30))))
+   10000)
+
+
+  ;;
+  ;; End async await
+  ;;
 
 
 
