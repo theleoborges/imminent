@@ -1,7 +1,9 @@
 (ns imminent.result
   (:require [imminent.protocols :refer [IReturn]]
             [imminent.util.functor :refer [BiFunctor]]
+            [imminent.util.monad   :as m]
             [uncomplicate.fluokitten.protocols :as fkp]
+            [uncomplicate.fluokitten.core :as fkc]
             clojure.core.match)
   (:import clojure.lang.IDeref))
 
@@ -30,6 +32,21 @@
       (catch Exception e
         (failure e))))
 
+  fkp/Monad
+  (bind[mv g]
+    (try
+      (g @mv)
+      (catch Exception e
+        (failure e))))
+
+  (bind [mv g mvs]
+    (fkc/mdo [v  mv
+              vs (sequence mvs)]
+             (fkc/return (apply g v vs))))
+
+  (join [mm]
+    (m/mjoin mm))
+
   Object
   (equals   [this other] (and (instance? Success other)
                               (= v @other)))
@@ -56,6 +73,14 @@
       (failure (g e))
       (catch Exception ex
         (failure ex))))
+
+  fkp/Monad
+  (bind [mv g] mv)
+
+  (bind [mv g mvs] mv)
+
+  (join [mm]
+    (m/mjoin mm))
 
   Object
   (equals   [this other] (and (instance? Failure other)
