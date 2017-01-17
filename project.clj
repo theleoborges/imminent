@@ -7,4 +7,5 @@
                  [org.clojure/test.check "0.5.8"]
                  [uncomplicate/fluokitten "0.3.0"]
                  [org.clojure/core.match "0.2.1"]]
-  :plugins [[codox "0.8.10"]])
+  :plugins [[codox "0.8.10"]]
+  :profiles {:dev {:dependencies [[midje "1.6.3"]]}})
