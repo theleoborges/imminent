@@ -4,7 +4,8 @@
             [imminent.util.monad   :as m]
             [uncomplicate.fluokitten.protocols :as fkp]
             [uncomplicate.fluokitten.core :as fkc]
-            clojure.core.match)
+            [uncomplicate.fluokitten.algo :as fka]
+            [clojure.core.match :refer [match]])
   (:import clojure.lang.IDeref))
 
 (declare success)
@@ -32,21 +33,6 @@
       (catch Exception e
         (failure e))))
 
-  fkp/Monad
-  (bind[mv g]
-    (try
-      (g @mv)
-      (catch Exception e
-        (failure e))))
-
-  (bind [mv g mvs]
-    (fkc/mdo [v  mv
-              vs (sequence mvs)]
-             (fkc/return (apply g v vs))))
-
-  (join [mm]
-    (m/mjoin mm))
-
   Object
   (equals   [this other] (and (instance? Success other)
                               (= v @other)))
@@ -61,6 +47,7 @@
   (failure?    [this] true)
   (map-failure [this f]
     (Failure. (f e)))
+
   fkp/Functor
   (fmap [fv _]
     fv)
@@ -76,9 +63,7 @@
 
   fkp/Monad
   (bind [mv g] mv)
-
   (bind [mv g mvs] mv)
-
   (join [mm]
     (m/mjoin mm))
 
@@ -93,7 +78,6 @@
 
 (defn failure [v]
   (Failure. v))
-
 
 ;;
 ;; Limited core.match support
@@ -113,3 +97,54 @@
     (if (= imminent.result.Failure k)
       @this
       not-found)))
+
+;;
+;; Applicative support
+;;
+
+;; Shared implementation of Applicative for Success and Failure.
+(defn sf-fapply
+  ([af av]
+   (match [af av]
+          [{Success f} {Success v}] (success (f v))
+          [_           {Failure _}] av
+          [{Failure _} _          ] af))
+  ([af av avs]
+   (match [af av avs]
+          [{Success f} {Success v} {Success vs}] (success (apply f v vs))
+          [          _           _ {Failure _ }] avs
+          [          _ {Failure _}            _] av
+          [{Failure _}           _            _] af)))
+
+(extend-type Success
+  fkp/Applicative
+  (fapply
+    ([af av]     (sf-fapply af av))
+    ([af av avs] (sf-fapply af av avs)))
+  (pure
+    ([_ v]
+     (success v))
+    ([_ v _]
+     (success v))))
+
+(extend-type Failure
+  fkp/Applicative
+  (fapply
+    ([af av]     (sf-fapply af av))
+    ([af av avs] (sf-fapply af av avs)))
+  (pure
+    ([_ e]
+     (failure e))
+    ([_ e _]
+     (failure e))))
+
+;;
+;; Monad support
+;;
+
+(extend-type Success
+  fkp/Monad
+  (bind
+    ([mv g]     (fka/default-bind mv g))
+    ([mv g mvs] (fka/default-bind mv g mvs)))
+  (join [mv] @mv))
