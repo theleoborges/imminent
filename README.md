@@ -1,6 +1,6 @@
 # imminent
 
-Composable futures for Clojure
+Composable futures for Clojure [![Build Status](https://travis-ci.org/leonardoborges/imminent.svg?branch=master)](https://travis-ci.org/leonardoborges/imminent)
 
 ## Table of Contents
 
