@@ -1,5 +1,8 @@
-## 0.1.2 (unreleased)
+## 0.2.0 (unreleased)
 
+- f0f04cf - Upgrade to Clojure 1.10.1
+- 36e9dff - Add Applicative support to Result
+- 3bfc854 - Extend Monad protocol to Result
 - be3c830 - Implement amb
 
 ## 0.1.1 (15/03/2015)

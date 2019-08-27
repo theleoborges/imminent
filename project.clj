@@ -1,4 +1,4 @@
-(defproject com.leonardoborges/imminent "0.1.4-SNAPSHOT"
+(defproject com.leonardoborges/imminent "0.2.0-SNAPSHOT"
   :description "A composable Futures library for Clojure"
   :url "https://github.com/leonardoborges/imminent"
   :license {:name "Eclipse Public License"
