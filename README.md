@@ -530,7 +530,7 @@ To run the tests:
 
 ## License
 
-Copyright © 2014 [Leonardo Borges](http://www.leonardoborges.com)
+Copyright © 2014-2019 [Leonardo Borges](http://www.leonardoborges.com)
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
