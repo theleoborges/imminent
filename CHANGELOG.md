@@ -1,4 +1,4 @@
-## 0.2.0 (unreleased)
+## 0.2.0 (03/08/2019)
 
 - f0f04cf - Upgrade to Clojure 1.10.1
 - 36e9dff - Add Applicative support to Result
