@@ -59,7 +59,8 @@
 
  [uncomplicate.fluokitten.core
   <*>
-  mdo]
+  mdo
+  return]
 
  [uncomplicate.fluokitten.jvm
   curry])
