@@ -120,7 +120,8 @@
     (let [st @state]
       (if (= st ::unresolved)
         (swap! listeners conj f)
-        (executors/dispatch f st))))
+        (executors/dispatch f st))
+      this))
 
   (filter [this pred?]
     (fkp/fmap this (fn [a]
