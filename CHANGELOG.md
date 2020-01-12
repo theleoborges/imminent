@@ -1,3 +1,7 @@
+## 0.2.1-SNAPSHOT (UNRELEASED)
+
+- 10261b2 - Return 'this' from 'on-complete' for easy threading
+
 ## 0.2.0 (03/08/2019)
 
 - f0f04cf - Upgrade to Clojure 1.10.1
